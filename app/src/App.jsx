@@ -161,7 +161,7 @@ const SEASON_PRESETS = {
       ],
       OUTONO_QUENTE_FAMILIES,
     ),
-    evitar: [["#E8C7D2","Rosa gelo"],["#6E8FBF","Azul frio"],["#000000","Preto"],["#FFFFFF","Branco puro"],["#C2308A","Magenta"],["#B0A0D0","Roxo-lavanda"],["#A9ABAE","Cinza-prata"],["#B8D0E8","Azul-bebê"],["#D9C9E8","Lilás claro"]].map(([hex,nome])=>({hex,nome})),
+    evitar: [["#E9ECFA","Branco azulado"],["#F6DEE8","Rosa gelo"],["#CFC0D9","Lilás acinzentado"],["#92A2C8","Azul-lavanda"],["#D6EBC6","Verde-menta claro"],["#A3A3A3","Cinza médio"],["#1A34DC","Azul elétrico"],["#0A0A0A","Preto"],["#E84B9C","Rosa-choque"]].map(([hex,nome])=>({hex,nome})),
   },
   "Outono Profundo": {
     estacao: "Outono", temperatura: "quente", contraste: "alto",
@@ -172,7 +172,29 @@ const SEASON_PRESETS = {
   "Inverno Profundo": {
     estacao: "Inverno", temperatura: "neutra-fria", contraste: "alto",
     resumo: "Cores escuras e intensas, alto contraste. Tons profundos e saturados — preto, esmeralda, vinho — favorecem mais que pastéis ou tons terrosos claros.",
-    paleta: [["#16130F","Preto"],["#1A2547","Azul-marinho profundo"],["#1F5C4A","Esmeralda"],["#5C1526","Vinho"],["#3E1F42","Ameixa profunda"],["#2E2E33","Chumbo"],["#A31E2E","Vermelho verdadeiro"],["#1F3E7A","Safira"],["#6B1F52","Magenta escuro"],["#123A3E","Petróleo profundo"],["#2E1433","Roxo-berinjela"],["#123D2E","Verde-esmeralda escuro"],["#3A3A3F","Cinza-grafite"],["#7A1420","Vermelho-sangue"]].map(([hex,nome])=>({hex,nome})),
+    paleta: paletteFromFamilies([
+      ["Amarelo ouro", ["#aea309", "#eada06", "#f7ea36", "#ede791", "#f5f4e0"]],
+      ["Lima fria", ["#909325", "#c0c42c", "#d3d656", "#dcdea1", "#f1f2e4"]],
+      ["Verde oliva frio", ["#6f7a3d", "#92a24e", "#adba73", "#cad0ae", "#edefe7"]],
+      ["Verde esmeralda", ["#04443d", "#037c70", "#08b5a3", "#31ddcc", "#96ded7"]],
+      ["Teal profundo", ["#043c44", "#036e7c", "#08a1b5", "#31c9dd", "#96d6de"]],
+      ["Verde petróleo", ["#0e3a3a", "#166969", "#239a9a", "#4cc2c2", "#a2d3d3"]],
+      ["Turquesa", ["#173030", "#295756", "#3d7f7f", "#66a8a7", "#adc8c7"]],
+      ["Verde menta", ["#1a2e27", "#2d5346", "#437a68", "#6ca291", "#afc5be"]],
+      ["Verde acinzentado", ["#1b2c2d", "#2e5051", "#467577", "#6f9ea0", "#b0c4c4"]],
+      ["Azul marinho", ["#141933", "#232c5d", "#354188", "#5e6ab1", "#a9aecb"]],
+      ["Azul royal", ["#0e2139", "#173a69", "#245699", "#4d7fc1", "#a2b7d2"]],
+      ["Azul elétrico", ["#042844", "#03477c", "#0869b5", "#3192dd", "#96bfde"]],
+      ["Azul céu", ["#132134", "#203a5f", "#31568b", "#5a7fb4", "#a8b7cd"]],
+      ["Azul sereno", ["#0d293b", "#154b6b", "#216e9c", "#4a96c5", "#a1c1d4"]],
+      ["Periwinkle", ["#1b1b2c", "#2f3050", "#474876", "#70719f", "#b0b1c4"]],
+      ["Violeta-índigo", ["#1c1235", "#311e61", "#492f8e", "#7258b7", "#b1a6ce"]],
+      ["Roxo", ["#211433", "#3a225e", "#563489", "#7f5db2", "#b7a9cc"]],
+      ["Ameixa", ["#271136", "#461d62", "#682d90", "#9056b8", "#bea6cf"]],
+      ["Berry", ["#351231", "#611e59", "#8e2e83", "#b757ab", "#cea6c9"]],
+      ["Magenta vinho", ["#3c0c20", "#6d1238", "#9f1d53", "#c8467c", "#d59fb5"]],
+      ["Neutro frio", ["#111313", "#2d3c4b", "#8e8b7f", "#c8c8c8", "#fefefd"]],
+    ]),
     evitar: [["#F0C7A0","Pêssego pastel"],["#D9C7A8","Bege"],["#B9713C","Laranja queimado"],["#8A5A3C","Marrom quente"],["#C9962C","Dourado"],["#9AA070","Verde-oliva claro"],["#D9B87A","Camelo claro"]].map(([hex,nome])=>({hex,nome})),
   },
   "Inverno Frio": {
@@ -475,10 +497,14 @@ function verdictText(m) {
 /* ---------- grade de cores ---------- */
 // Uma única forma de mostrar cartela no app: quadradinhos retos numa grade.
 // A densidade muda com o tamanho da cartela, o desenho não.
-// Cartela grande tem 20 famílias por linha; nas menores escolhe o número de colunas
-// que deixa a última linha mais cheia, pra não sobrar um vão esquisito no fim.
+// Cartela completa tem uma família por coluna e um nível por linha, e nem toda
+// cartela tem o mesmo número de famílias — daí as colunas saírem do próprio
+// tamanho. Nas cartelas menores escolhe o número de colunas que deixa a última
+// linha mais cheia, pra não sobrar um vão esquisito no fim.
 function balancedColumns(count) {
-  if (count >= 50) return 20;
+  if (count >= 50) {
+    return count % PALETTE_LEVELS.length === 0 ? count / PALETTE_LEVELS.length : 20;
+  }
   if (count <= 4) return count;
   let best = Math.min(count, 7);
   let bestGap = Infinity;
