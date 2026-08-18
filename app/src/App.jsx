@@ -101,6 +101,13 @@ function premiumColors(palette) {
     .sort((a, b) => (a.familyIndex ?? 0) - (b.familyIndex ?? 0));
 }
 
+// Algumas cartelas trazem as melhores como lista à parte, já nomeada; outras só
+// marcam um tom por família dentro da própria grade.
+function premiumForSeason(season) {
+  if (season?.premium?.length) return season.premium;
+  return premiumColors(primaryPaletteForSeason(season));
+}
+
 function paletteFromGrid(rows, families) {
   return rows.flatMap((row, rowIndex) =>
     row.map((hex, columnIndex) => ({
@@ -168,15 +175,18 @@ const SEASON_PRESETS = {
     resumo: "Subtom quente e dourado com boa saturação. Terrosos vívidos — mostarda, ferrugem, oliva — realçam mais que tons frios, acinzentados ou muito contrastantes como o preto puro.",
     paleta: paletteFromGrid(
       [
-        ["#4f452c", "#373f1b", "#2b4538", "#345152", "#2d6268", "#412d58", "#650f50", "#4f0325", "#56121d", "#64353b", "#aa303b", "#af2300", "#b24e10", "#79372e", "#4d2f2b", "#554031", "#3e3222", "#805a03", "#b26c05", "#3b1a0e"],
-        ["#646521", "#244b2c", "#1d6560", "#214e59", "#1c7e87", "#6a357b", "#84206e", "#72133f", "#801825", "#9b5c65", "#ca3a47", "#e82e03", "#e46313", "#af3f29", "#83493d", "#765b3a", "#575733", "#b1841e", "#ca7c09", "#5f2c1f"],
-        ["#a8a82c", "#29692a", "#458271", "#20787f", "#4b98a8", "#8f488d", "#9c3481", "#992d5f", "#af2d3e", "#c58d8e", "#d65662", "#d55738", "#e87a34", "#cb5f4b", "#a76356", "#bc9855", "#686751", "#dbac38", "#ea9825", "#a46641"],
-        ["#9ba46b", "#4f9634", "#379a7c", "#37adb8", "#68c1d5", "#a156a5", "#b763a4", "#c85a8d", "#c55d6a", "#d8baba", "#db8888", "#e37959", "#dc9261", "#bf796d", "#c3947e", "#bfa47c", "#a6967c", "#ae955c", "#ed9752", "#b88a62"],
-        ["#b9b782", "#8fba4a", "#8ecab9", "#8dc9cf", "#80dae9", "#d093d7", "#bf82b9", "#da8eb2", "#c5818a", "#f0e3d7", "#edc3ba", "#e38382", "#e1b191", "#deab98", "#dcab85", "#ddd69e", "#e8dccc", "#e9d260", "#edb450", "#f1b788"],
+        ["#4f452c", "#373f1b", "#2b4538", "#355152", "#2d6268", "#412d58", "#650f50", "#4f0325", "#56121d", "#64353b", "#aa303b", "#af2300", "#b24e10", "#79372e", "#4d2f2b", "#564031", "#3e3222", "#805a03", "#b26d05", "#3c1a0e"],
+        ["#646521", "#244b2c", "#1d6560", "#224e59", "#1c7e87", "#6a357b", "#84206e", "#72133f", "#801825", "#9b5c65", "#ca3a47", "#e82e03", "#e46313", "#af3f29", "#83493d", "#765c3b", "#575733", "#b1841e", "#ca7d09", "#5f2c1f"],
+        ["#a8a82c", "#29692a", "#458271", "#20797f", "#4b98a8", "#8f488d", "#9c3481", "#992d5f", "#af2d3f", "#c58d8e", "#d65662", "#d55738", "#e87a34", "#cb5f4b", "#a76356", "#bc9955", "#686751", "#dbac38", "#ea9925", "#a46642"],
+        ["#9ba46b", "#4f9634", "#379a7c", "#38aeb8", "#68c1d5", "#a156a5", "#b763a4", "#c85a8d", "#c55d6a", "#d8baba", "#db8888", "#e37959", "#dc9261", "#bf796d", "#c3947e", "#bfa47c", "#a6967c", "#ae955c", "#ed9752", "#b88b62"],
+        ["#b9b782", "#8fbb4a", "#8ecbb9", "#8ec9cf", "#80dae9", "#d093d7", "#bf82b9", "#da8eb2", "#c5828a", "#f0e3d8", "#edc3ba", "#e38382", "#e1b191", "#dfac99", "#ddab86", "#ddd69f", "#e8dccc", "#e9d260", "#edb450", "#f2b888"],
       ],
       OUTONO_QUENTE_FAMILIES,
     ),
-    evitar: [["#E9ECFA","Branco azulado"],["#F6DEE8","Rosa gelo"],["#CFC0D9","Lilás acinzentado"],["#92A2C8","Azul-lavanda"],["#D6EBC6","Verde-menta claro"],["#A3A3A3","Cinza médio"],["#1A34DC","Azul elétrico"],["#0A0A0A","Preto"],["#E84B9C","Rosa-choque"]].map(([hex,nome])=>({hex,nome})),
+    // as melhores vêm nomeadas na cartela, com nomes mais precisos que os que a
+    // grade gera a partir da família e do nível — então entram como lista própria
+    premium: [["#373F1B","Oliva profundo"],["#2B4538","Verde floresta quente"],["#2D6268","Petróleo"],["#646521","Verde oliva"],["#244B2C","Verde musgo"],["#1D6560","Teal quente"],["#29692A","Verde folha"],["#A8A82C","Oliva dourado"],["#805A03","Mostarda escura"],["#B26D05","Ocre"],["#DBAC38","Dourado"],["#CA7D09","Abóbora"],["#B24E10","Laranja queimado"],["#E87A34","Terracota"],["#D55738","Telha"],["#AF2D3F","Vermelho quente"],["#A76356","Argila"],["#4D2F2B","Chocolate"],["#B88B62","Camel"],["#ED9752","Pêssego queimado"]].map(([hex,nome])=>({hex,nome})),
+    evitar: [["#FFFFFF","Branco óptico"],["#000000","Preto puro"],["#D9DDE5","Cinza gelo"],["#AEB6C2","Cinza azulado"],["#C0C0C0","Prata fria"],["#8E8792","Taupe frio"],["#CFE8FF","Azul gelo"],["#BDE0FE","Azul bebê frio"],["#5B7CFF","Azul royal frio"],["#0047AB","Azul cobalto"],["#D8C4F1","Lavanda gelada"],["#C8A2C8","Lilás frio"],["#F4A6C8","Rosa bebê frio"],["#FF00A8","Fúcsia"],["#D1007A","Magenta frio"],["#5A1636","Bordô azulado"],["#C0003C","Vermelho azulado"],["#BFE8DF","Menta fria"],["#B7FF00","Verde neon"],["#F4FF3A","Amarelo neon"]].map(([hex,nome])=>({hex,nome})),
   },
   "Outono Profundo": {
     estacao: "Outono", temperatura: "quente", contraste: "alto",
@@ -1129,10 +1139,10 @@ export default function App() {
             </div>
             <Palette key={`paleta-${season.subtom}`} colors={primaryPaletteForSeason(season)} hint />
 
-            {premiumColors(primaryPaletteForSeason(season)).length > 0 && (
+            {premiumForSeason(season).length > 0 && (
               <>
                 <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: T.muted, margin: "28px 0 4px" }}>
-                  CORES PREMIUM · {premiumColors(primaryPaletteForSeason(season)).length} TONS
+                  CORES PREMIUM · {premiumForSeason(season).length} TONS
                 </div>
                 <p style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.5, marginBottom: 12 }}>
                   O tom que mais favorece dentro de cada família da sua cartela. São as cores pra investir —
@@ -1140,7 +1150,7 @@ export default function App() {
                 </p>
                 <Palette
                   key={`premium-${season.subtom}`}
-                  colors={premiumColors(primaryPaletteForSeason(season))}
+                  colors={premiumForSeason(season)}
                   hint
                 />
               </>
