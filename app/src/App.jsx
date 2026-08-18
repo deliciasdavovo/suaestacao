@@ -185,29 +185,73 @@ function rgbToHex({ r, g, b }) {
 function dist(a, b) {
   return Math.sqrt((a.r - b.r) ** 2 + (a.g - b.g) ** 2 + (a.b - b.b) ** 2);
 }
+
+function rgbToLab({ r, g, b }) {
+  const linearize = (value) => {
+    const channel = value / 255;
+    return channel > 0.04045 ? ((channel + 0.055) / 1.055) ** 2.4 : channel / 12.92;
+  };
+  const red = linearize(r);
+  const green = linearize(g);
+  const blue = linearize(b);
+  const x = (red * 0.4124 + green * 0.3576 + blue * 0.1805) / 0.95047;
+  const y = red * 0.2126 + green * 0.7152 + blue * 0.0722;
+  const z = (red * 0.0193 + green * 0.1192 + blue * 0.9505) / 1.08883;
+  const pivot = (value) => (value > 0.008856 ? value ** (1 / 3) : 7.787 * value + 16 / 116);
+  const fx = pivot(x);
+  const fy = pivot(y);
+  const fz = pivot(z);
+  return { l: 116 * fy - 16, a: 500 * (fx - fy), b: 200 * (fy - fz) };
+}
+
+function perceptualDistance(rgb, color) {
+  const first = rgbToLab(rgb);
+  const second = rgbToLab(hexToRgb(color.hex));
+  return Math.sqrt(
+    (first.l - second.l) ** 2 + (first.a - second.a) ** 2 + (first.b - second.b) ** 2,
+  );
+}
+
+function closestColor(rgb, colors, source) {
+  return colors.reduce((closest, color) => {
+    const d = perceptualDistance(rgb, color);
+    return !closest || d < closest.d ? { d, color, source } : closest;
+  }, null);
+}
+
 function matchClothing(dominantRgb, season) {
-  let best = null,
-    bestAvoid = null;
-  season.paleta.forEach((c) => {
-    const d = dist(dominantRgb, hexToRgb(c.hex));
-    if (!best || d < best.d) best = { d, color: c };
-  });
-  season.evitar.forEach((c) => {
-    const d = dist(dominantRgb, hexToRgb(c.hex));
-    if (!bestAvoid || d < bestAvoid.d) bestAvoid = { d, color: c };
-  });
-  const combina = !bestAvoid || best.d <= bestAvoid.d;
-  let score;
-  if (bestAvoid) {
-    const total = best.d + bestAvoid.d;
-    // score = o quanto a cor está mais perto da paleta boa do que da lista de evitar.
-    // perto de um "evitar" exato (d=0) => 0%. perto de um "paleta" exato (d=0) => 100%.
-    score = total > 0 ? Math.round((bestAvoid.d / total) * 100) : 50;
-  } else {
-    score = Math.max(0, Math.min(100, Math.round(100 - (best.d / 300) * 100)));
-  }
-  const suggestions = season.paleta
-    .map((c) => ({ d: dist(dominantRgb, hexToRgb(c.hex)), color: c }))
+  const sisterName = SISTER_MAP[season.subtom];
+  const sisterPalette = sisterName ? SEASON_PRESETS[sisterName]?.paleta || [] : [];
+  const ownBest = closestColor(dominantRgb, season.paleta, "principal");
+  const sisterBest = closestColor(dominantRgb, sisterPalette, "irmã");
+  const best = !sisterBest || ownBest.d <= sisterBest.d ? ownBest : sisterBest;
+  const bestAvoid = closestColor(dominantRgb, season.evitar || [], "evitar");
+
+  // Fotos, compressão e luz alteram um pouco o RGB. Uma cor próxima da cartela
+  // principal ou irmã só é recusada quando ela está claramente colada a um tom a evitar.
+  const exactPalette = best.d <= 8;
+  const exactAvoid = bestAvoid?.d <= 8;
+  const tolerance = best.source === "principal" ? 32 : 26;
+  const closeEnough = best.d <= tolerance;
+  const notDominatedByAvoid = !bestAvoid || best.d <= bestAvoid.d + 8;
+  const clearlyCloserToPalette = !bestAvoid || best.d + 5 < bestAvoid.d;
+  const combina =
+    exactPalette || (!exactAvoid && ((closeEnough && notDominatedByAvoid) || clearlyCloserToPalette));
+
+  const proximity = Math.max(0, Math.min(100, 100 - best.d * 1.8));
+  const totalDistance = best.d + (bestAvoid?.d || 0);
+  const relative = bestAvoid && totalDistance > 0 ? (bestAvoid.d / totalDistance) * 100 : proximity;
+  let score = combina
+    ? Math.round(proximity * 0.75 + Math.max(50, relative) * 0.25)
+    : Math.round(Math.min(49, relative * 0.8));
+  if (best.d <= 4) score = 100;
+  else if (exactPalette) score = Math.max(90, score);
+
+  const compatibleColors = [...season.paleta, ...sisterPalette].filter(
+    (color, index, list) => list.findIndex((item) => item.hex === color.hex) === index,
+  );
+  const suggestions = compatibleColors
+    .map((color) => ({ d: perceptualDistance(dominantRgb, color), color }))
     .sort((a, b) => a.d - b.d)
     .slice(0, 3)
     .map((s) => s.color);
@@ -215,7 +259,7 @@ function matchClothing(dominantRgb, season) {
     combina,
     score,
     suggestions,
-    closest: combina ? best.color : bestAvoid.color,
+    closest: combina ? best.color : bestAvoid?.color || best.color,
     dominantHex: rgbToHex(dominantRgb),
   };
 }
@@ -393,18 +437,31 @@ export default function App() {
     const yRatio = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
     const px = Math.round(xRatio * tapImage.width);
     const py = Math.round(yRatio * tapImage.height);
-    const box = Math.max(6, Math.round(tapImage.width * 0.03));
+    const box = Math.max(3, Math.min(10, Math.round(Math.min(tapImage.width, tapImage.height) * 0.01)));
     const x0 = Math.max(0, px - box);
     const y0 = Math.max(0, py - box);
     const w = Math.min(tapImage.width - x0, box * 2);
     const h = Math.min(tapImage.height - y0, box * 2);
     const data = tapImage.ctx.getImageData(x0, y0, w, h).data;
-    let r = 0, g = 0, b = 0, count = 0;
+    const centerData = tapImage.ctx.getImageData(
+      Math.min(tapImage.width - 1, Math.max(0, px)),
+      Math.min(tapImage.height - 1, Math.max(0, py)),
+      1,
+      1,
+    ).data;
+    const center = { r: centerData[0], g: centerData[1], b: centerData[2] };
+    const pixels = [];
     for (let i = 0; i < data.length; i += 4) {
       if (data[i + 3] < 128) continue;
-      r += data[i]; g += data[i + 1]; b += data[i + 2]; count++;
+      const pixel = { r: data[i], g: data[i + 1], b: data[i + 2] };
+      if (dist(pixel, center) <= 65) pixels.push(pixel);
     }
-    const rgb = count ? { r: r / count, g: g / count, b: b / count } : { r: 128, g: 128, b: 128 };
+    const sample = pixels.length ? pixels : [center];
+    const median = (channel) => {
+      const values = sample.map((pixel) => pixel[channel]).sort((a, b) => a - b);
+      return values[Math.floor(values.length / 2)];
+    };
+    const rgb = { r: median("r"), g: median("g"), b: median("b") };
     setTapPoint({ xPct: xRatio * 100, yPct: yRatio * 100, rgb });
   }
 
