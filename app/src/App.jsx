@@ -161,7 +161,7 @@ const SEASON_PRESETS = {
       ],
       OUTONO_QUENTE_FAMILIES,
     ),
-    evitar: [["#E8C7D2","Rosa gelo"],["#6E8FBF","Azul frio"],["#000000","Preto"],["#FFFFFF","Branco puro"],["#C2308A","Magenta"],["#B0A0D0","Roxo-lavanda"],["#A9ABAE","Cinza-prata"],["#B8D0E8","Azul-bebê"],["#D9C9E8","Lilás claro"]].map(([hex,nome])=>({hex,nome})),
+    evitar: [["#E9ECFA","Branco azulado"],["#F6DEE8","Rosa gelo"],["#CFC0D9","Lilás acinzentado"],["#92A2C8","Azul-lavanda"],["#D6EBC6","Verde-menta claro"],["#A3A3A3","Cinza médio"],["#1A34DC","Azul elétrico"],["#0A0A0A","Preto"],["#E84B9C","Rosa-choque"]].map(([hex,nome])=>({hex,nome})),
   },
   "Outono Profundo": {
     estacao: "Outono", temperatura: "quente", contraste: "alto",
