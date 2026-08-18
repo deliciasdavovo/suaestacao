@@ -419,6 +419,29 @@ function isPresetSeason(season) {
   );
 }
 
+// Os chips da lista de colorações são a impressão que a pessoa tem da cartela
+// antes de abrir. Pegar as primeiras cores mostrava só o nível mais profundo das
+// primeiras famílias — quatro tons escuros e frios para a Primavera Quente, que
+// não se parecem nada com ela. Numa cartela completa o nível do meio representa
+// melhor, e as famílias entram espalhadas em vez de todas do mesmo canto.
+function seasonSwatches(palette, count = 4) {
+  if (!palette?.length) return [];
+  const levels = PALETTE_LEVELS.length;
+  let source = palette;
+  if (palette.length >= 50 && palette.length % levels === 0) {
+    const families = palette.length / levels;
+    const middle = Math.floor(levels / 2);
+    source = palette.slice(middle * families, (middle + 1) * families);
+  }
+  if (source.length <= count) return source;
+  // amostra o meio de cada bloco em vez das pontas: pegar da primeira e da última
+  // família cai sempre nos amarelos e no cinza neutro, as menos características.
+  return Array.from(
+    { length: count },
+    (_, i) => source[Math.round(((i + 0.5) * source.length) / count)],
+  );
+}
+
 function primaryPaletteForSeason(season) {
   const presetPalette = SEASON_PRESETS[season?.subtom]?.paleta || [];
   if (isPresetSeason(season)) return presetPalette;
@@ -996,28 +1019,40 @@ export default function App() {
                 <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: T.muted, marginBottom: 10 }}>
                   {group.name.toUpperCase()}
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {/* cada estação tem exatamente três subtons, então as três colunas
+                    deixam a estação inteira numa linha só */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                    gap: 8,
+                  }}
+                >
                   {group.subtons.map((name) => (
                     <button
                       key={name}
                       onClick={() => selectPreset(name)}
                       style={{
                         display: "flex",
+                        flexDirection: "column",
                         alignItems: "center",
-                        gap: 12,
-                        textAlign: "left",
+                        justifyContent: "flex-start",
+                        gap: 8,
+                        textAlign: "center",
                         background: T.paper2,
                         border: `1px solid ${T.line}`,
                         borderRadius: 12,
-                        padding: "12px 14px",
+                        padding: "12px 6px",
                         cursor: "pointer",
                         fontFamily: "'Inter', sans-serif",
-                        fontSize: 14,
+                        fontSize: 12.5,
+                        lineHeight: 1.3,
                         color: T.ink,
+                        height: "100%",
                       }}
                     >
                       <span style={{ display: "flex", gap: 3, flexShrink: 0 }}>
-                        {SEASON_PRESETS[name].paleta.slice(0, 4).map((c, i) => (
+                        {seasonSwatches(SEASON_PRESETS[name].paleta).map((c, i) => (
                           <span
                             key={i}
                             style={{
