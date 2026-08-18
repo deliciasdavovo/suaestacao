@@ -77,13 +77,28 @@ const OUTONO_QUENTE_FAMILIES = [
 
 // mesma cartela do paletteFromGrid, só que descrita família a família
 // (cada entrada é [nome, [do mais profundo ao mais suave]).
+// O terceiro item de cada família é o nível premium — o tom que a cartela marca
+// com asterisco, o que mais favorece dentro daquela família. Família sem marca
+// (os neutros, nas cartelas de inverno) simplesmente não tem premium.
 function paletteFromFamilies(families) {
   return PALETTE_LEVELS.flatMap((level, levelIndex) =>
-    families.map(([nome, tons]) => ({
-      hex: tons[levelIndex].toUpperCase(),
-      nome: `${nome} ${level}`,
-    })),
+    families.map(([nome, tons, premiumLevel], familyIndex) => {
+      const color = { hex: tons[levelIndex].toUpperCase(), nome: `${nome} ${level}` };
+      if (premiumLevel === levelIndex) {
+        color.premium = true;
+        color.familyIndex = familyIndex;
+      }
+      return color;
+    }),
   );
+}
+
+// Na cartela as premium ficam espalhadas nível a nível; aqui voltam à ordem das
+// famílias, que é como a cartela impressa se lê.
+function premiumColors(palette) {
+  return (palette || [])
+    .filter((color) => color.premium)
+    .sort((a, b) => (a.familyIndex ?? 0) - (b.familyIndex ?? 0));
 }
 
 function paletteFromGrid(rows, families) {
@@ -173,26 +188,26 @@ const SEASON_PRESETS = {
     estacao: "Inverno", temperatura: "neutra-fria", contraste: "alto",
     resumo: "Cores escuras e intensas, alto contraste. Tons profundos e saturados — preto, esmeralda, vinho — favorecem mais que pastéis ou tons terrosos claros.",
     paleta: paletteFromFamilies([
-      ["Amarelo ouro", ["#aea309", "#eada06", "#f7ea36", "#ede791", "#f5f4e0"]],
-      ["Lima fria", ["#909325", "#c0c42c", "#d3d656", "#dcdea1", "#f1f2e4"]],
-      ["Verde oliva frio", ["#6f7a3d", "#92a24e", "#adba73", "#cad0ae", "#edefe7"]],
-      ["Verde esmeralda", ["#04443d", "#037c70", "#08b5a3", "#31ddcc", "#96ded7"]],
-      ["Teal profundo", ["#043c44", "#036e7c", "#08a1b5", "#31c9dd", "#96d6de"]],
-      ["Verde petróleo", ["#0e3a3a", "#166969", "#239a9a", "#4cc2c2", "#a2d3d3"]],
-      ["Turquesa", ["#173030", "#295756", "#3d7f7f", "#66a8a7", "#adc8c7"]],
-      ["Verde menta", ["#1a2e27", "#2d5346", "#437a68", "#6ca291", "#afc5be"]],
-      ["Verde acinzentado", ["#1b2c2d", "#2e5051", "#467577", "#6f9ea0", "#b0c4c4"]],
-      ["Azul marinho", ["#141933", "#232c5d", "#354188", "#5e6ab1", "#a9aecb"]],
-      ["Azul royal", ["#0e2139", "#173a69", "#245699", "#4d7fc1", "#a2b7d2"]],
-      ["Azul elétrico", ["#042844", "#03477c", "#0869b5", "#3192dd", "#96bfde"]],
-      ["Azul céu", ["#132134", "#203a5f", "#31568b", "#5a7fb4", "#a8b7cd"]],
-      ["Azul sereno", ["#0d293b", "#154b6b", "#216e9c", "#4a96c5", "#a1c1d4"]],
-      ["Periwinkle", ["#1b1b2c", "#2f3050", "#474876", "#70719f", "#b0b1c4"]],
-      ["Violeta-índigo", ["#1c1235", "#311e61", "#492f8e", "#7258b7", "#b1a6ce"]],
-      ["Roxo", ["#211433", "#3a225e", "#563489", "#7f5db2", "#b7a9cc"]],
-      ["Ameixa", ["#271136", "#461d62", "#682d90", "#9056b8", "#bea6cf"]],
-      ["Berry", ["#351231", "#611e59", "#8e2e83", "#b757ab", "#cea6c9"]],
-      ["Magenta vinho", ["#3c0c20", "#6d1238", "#9f1d53", "#c8467c", "#d59fb5"]],
+      ["Amarelo ouro", ["#aea309", "#eada06", "#f7ea36", "#ede791", "#f5f4e0"], 1],
+      ["Lima fria", ["#909325", "#c0c42c", "#d3d656", "#dcdea1", "#f1f2e4"], 2],
+      ["Verde oliva frio", ["#6f7a3d", "#92a24e", "#adba73", "#cad0ae", "#edefe7"], 2],
+      ["Verde esmeralda", ["#04443d", "#037c70", "#08b5a3", "#31ddcc", "#96ded7"], 1],
+      ["Teal profundo", ["#043c44", "#036e7c", "#08a1b5", "#31c9dd", "#96d6de"], 1],
+      ["Verde petróleo", ["#0e3a3a", "#166969", "#239a9a", "#4cc2c2", "#a2d3d3"], 0],
+      ["Turquesa", ["#173030", "#295756", "#3d7f7f", "#66a8a7", "#adc8c7"], 3],
+      ["Verde menta", ["#1a2e27", "#2d5346", "#437a68", "#6ca291", "#afc5be"], 4],
+      ["Verde acinzentado", ["#1b2c2d", "#2e5051", "#467577", "#6f9ea0", "#b0c4c4"], 2],
+      ["Azul marinho", ["#141933", "#232c5d", "#354188", "#5e6ab1", "#a9aecb"], 1],
+      ["Azul royal", ["#0e2139", "#173a69", "#245699", "#4d7fc1", "#a2b7d2"], 2],
+      ["Azul elétrico", ["#042844", "#03477c", "#0869b5", "#3192dd", "#96bfde"], 2],
+      ["Azul céu", ["#132134", "#203a5f", "#31568b", "#5a7fb4", "#a8b7cd"], 3],
+      ["Azul sereno", ["#0d293b", "#154b6b", "#216e9c", "#4a96c5", "#a1c1d4"], 3],
+      ["Periwinkle", ["#1b1b2c", "#2f3050", "#474876", "#70719f", "#b0b1c4"], 3],
+      ["Violeta-índigo", ["#1c1235", "#311e61", "#492f8e", "#7258b7", "#b1a6ce"], 1],
+      ["Roxo", ["#211433", "#3a225e", "#563489", "#7f5db2", "#b7a9cc"], 2],
+      ["Ameixa", ["#271136", "#461d62", "#682d90", "#9056b8", "#bea6cf"], 0],
+      ["Berry", ["#351231", "#611e59", "#8e2e83", "#b757ab", "#cea6c9"], 1],
+      ["Magenta vinho", ["#3c0c20", "#6d1238", "#9f1d53", "#c8467c", "#d59fb5"], 2],
       ["Neutro frio", ["#111313", "#2d3c4b", "#8e8b7f", "#c8c8c8", "#fefefd"]],
     ]),
     evitar: [["#F0C7A0","Pêssego pastel"],["#D9C7A8","Bege"],["#B9713C","Laranja queimado"],["#8A5A3C","Marrom quente"],["#C9962C","Dourado"],["#9AA070","Verde-oliva claro"],["#D9B87A","Camelo claro"]].map(([hex,nome])=>({hex,nome})),
@@ -201,25 +216,25 @@ const SEASON_PRESETS = {
     estacao: "Inverno", temperatura: "fria", contraste: "alto",
     resumo: "Subtom frio e contraste alto entre pele, olhos e cabelo. Cores puras e frias — azul, fúcsia, esmeralda — favorecem mais que tons quentes ou terrosos.",
     paleta: paletteFromFamilies([
-      ["Amarelo limão", ["#b5a617", "#ebd81e", "#f0e256", "#ece6ac", "#f7f5e9"]],
-      ["Lima fria", ["#9ca02c", "#cbd039", "#d8dc6a", "#e2e3b5", "#f5f5eb"]],
-      ["Verde esmeralda", ["#04624e", "#00a380", "#00e0b0", "#4ee4c4", "#a8e6d8"]],
-      ["Verde jade", ["#046162", "#00a2a3", "#00dfe0", "#4ee4e4", "#a8e5e6"]],
-      ["Turquesa", ["#13534d", "#1b897e", "#25bcad", "#66ccc2", "#b2dcd8"]],
-      ["Verde menta", ["#21453f", "#327167", "#459b8e", "#7cb6ad", "#bbd3cf"]],
-      ["Teal profundo", ["#08555e", "#088d9c", "#0ac1d6", "#55d0dd", "#abdde3"]],
-      ["Verde acinzentado", ["#2b3b36", "#436058", "#5c8478", "#8ca69f", "#c1ccc9"]],
-      ["Azul marinho", ["#042e62", "#0049a3", "#0064e0", "#4e91e4", "#a8c4e6"]],
-      ["Azul royal", ["#0f2757", "#143d8f", "#1b53c5", "#6086d2", "#afbfde"]],
-      ["Azul elétrico", ["#043e62", "#0064a3", "#008ae0", "#4eaae4", "#a8cee6"]],
-      ["Azul céu", ["#1b314b", "#284d7b", "#376aa9", "#7395bf", "#b7c5d7"]],
-      ["Azul sereno", ["#17334f", "#215283", "#2d71b4", "#6c9ac6", "#b4c7d9"]],
-      ["Periwinkle", ["#112655", "#173b8c", "#2051c0", "#6384cf", "#b1bedd"]],
-      ["Violeta-índigo", ["#2b1a4c", "#44267d", "#5d35ac", "#8c71c1", "#c2b7d7"]],
-      ["Roxo", ["#341c4a", "#53297a", "#7339a8", "#9b74be", "#c8b8d6"]],
-      ["Orquídea", ["#41253b", "#6a3a5f", "#914f83", "#af83a6", "#d0becc"]],
-      ["Magenta", ["#60062d", "#a00347", "#dc0462", "#e25090", "#e5a9c3"]],
-      ["Rosa pink", ["#531331", "#8a194f", "#be236d", "#cd6597", "#dcb2c6"]],
+      ["Amarelo limão", ["#b5a617", "#ebd81e", "#f0e256", "#ece6ac", "#f7f5e9"], 1],
+      ["Lima fria", ["#9ca02c", "#cbd039", "#d8dc6a", "#e2e3b5", "#f5f5eb"], 2],
+      ["Verde esmeralda", ["#04624e", "#00a380", "#00e0b0", "#4ee4c4", "#a8e6d8"], 2],
+      ["Verde jade", ["#046162", "#00a2a3", "#00dfe0", "#4ee4e4", "#a8e5e6"], 2],
+      ["Turquesa", ["#13534d", "#1b897e", "#25bcad", "#66ccc2", "#b2dcd8"], 2],
+      ["Verde menta", ["#21453f", "#327167", "#459b8e", "#7cb6ad", "#bbd3cf"], 3],
+      ["Teal profundo", ["#08555e", "#088d9c", "#0ac1d6", "#55d0dd", "#abdde3"], 1],
+      ["Verde acinzentado", ["#2b3b36", "#436058", "#5c8478", "#8ca69f", "#c1ccc9"], 2],
+      ["Azul marinho", ["#042e62", "#0049a3", "#0064e0", "#4e91e4", "#a8c4e6"], 0],
+      ["Azul royal", ["#0f2757", "#143d8f", "#1b53c5", "#6086d2", "#afbfde"], 2],
+      ["Azul elétrico", ["#043e62", "#0064a3", "#008ae0", "#4eaae4", "#a8cee6"], 2],
+      ["Azul céu", ["#1b314b", "#284d7b", "#376aa9", "#7395bf", "#b7c5d7"], 2],
+      ["Azul sereno", ["#17334f", "#215283", "#2d71b4", "#6c9ac6", "#b4c7d9"], 3],
+      ["Periwinkle", ["#112655", "#173b8c", "#2051c0", "#6384cf", "#b1bedd"], 3],
+      ["Violeta-índigo", ["#2b1a4c", "#44267d", "#5d35ac", "#8c71c1", "#c2b7d7"], 1],
+      ["Roxo", ["#341c4a", "#53297a", "#7339a8", "#9b74be", "#c8b8d6"], 1],
+      ["Orquídea", ["#41253b", "#6a3a5f", "#914f83", "#af83a6", "#d0becc"], 2],
+      ["Magenta", ["#60062d", "#a00347", "#dc0462", "#e25090", "#e5a9c3"], 2],
+      ["Rosa pink", ["#531331", "#8a194f", "#be236d", "#cd6597", "#dcb2c6"], 3],
       ["Neutro frio", ["#111313", "#2d3c4b", "#8e8b7f", "#c8c8c8", "#fefefd"]],
     ]),
     evitar: [["#E8752D","Laranja"],["#8A5A3C","Marrom quente"],["#C9A227","Mostarda"],["#708238","Verde-oliva"],["#F0A97A","Pêssego"],["#D9C39F","Bege-areia"],["#5C6E2E","Verde-musgo"]].map(([hex,nome])=>({hex,nome})),
@@ -1115,10 +1130,22 @@ export default function App() {
             </div>
             <Palette key={`paleta-${season.subtom}`} colors={primaryPaletteForSeason(season)} hint />
 
-            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: T.muted, margin: "28px 0 12px" }}>
-              EVITAR
-            </div>
-            <Palette key={`evitar-${season.subtom}`} colors={season.evitar} />
+            {premiumColors(primaryPaletteForSeason(season)).length > 0 && (
+              <>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: T.muted, margin: "28px 0 4px" }}>
+                  CORES PREMIUM · {premiumColors(primaryPaletteForSeason(season)).length} TONS
+                </div>
+                <p style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.5, marginBottom: 12 }}>
+                  O tom que mais favorece dentro de cada família da sua cartela. São as cores pra investir —
+                  peça-chave, look de evento, o que fica perto do rosto.
+                </p>
+                <Palette
+                  key={`premium-${season.subtom}`}
+                  colors={premiumColors(primaryPaletteForSeason(season))}
+                  hint
+                />
+              </>
+            )}
 
             {SISTER_MAP[season.subtom] && SEASON_PRESETS[SISTER_MAP[season.subtom]] && (
               <>
@@ -1135,6 +1162,11 @@ export default function App() {
                 />
               </>
             )}
+
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: T.muted, margin: "28px 0 12px" }}>
+              EVITAR
+            </div>
+            <Palette key={`evitar-${season.subtom}`} colors={season.evitar} />
 
             <div style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 10 }}>
               <button style={btnPrimary} onClick={() => go("upload-clothing")}>
