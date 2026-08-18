@@ -29,6 +29,39 @@ Responda SOMENTE com um JSON válido, sem markdown, sem texto antes ou depois, s
 const USER_PROMPT =
   "Analise esta foto e retorne o JSON da coloração pessoal, seguindo exatamente o schema do system prompt.";
 
+const PALETTE_LEVELS = ["profundo", "escuro", "médio", "claro", "suave"];
+const OUTONO_QUENTE_FAMILIES = [
+  "Oliva",
+  "Verde",
+  "Verde-azulado",
+  "Petróleo",
+  "Turquesa",
+  "Ameixa",
+  "Magenta",
+  "Vinho",
+  "Vermelho",
+  "Rosa queimado",
+  "Rubi",
+  "Vermelho-alaranjado",
+  "Laranja",
+  "Terracota",
+  "Marrom rosado",
+  "Cáqui",
+  "Taupe quente",
+  "Mostarda",
+  "Âmbar",
+  "Caramelo",
+];
+
+function paletteFromGrid(rows, families) {
+  return rows.flatMap((row, rowIndex) =>
+    row.map((hex, columnIndex) => ({
+      hex: hex.toUpperCase(),
+      nome: `${families[columnIndex]} ${PALETTE_LEVELS[rowIndex]}`,
+    })),
+  );
+}
+
 /* ---------- paletas pré-definidas (sistema das 12 estações) ---------- */
 const SEASON_PRESETS = {
   "Primavera Clara": {
@@ -76,7 +109,16 @@ const SEASON_PRESETS = {
   "Outono Quente": {
     estacao: "Outono", temperatura: "quente", contraste: "médio",
     resumo: "Subtom quente e dourado com boa saturação. Terrosos vívidos — mostarda, ferrugem, oliva — realçam mais que tons frios, acinzentados ou muito contrastantes como o preto puro.",
-    paleta: [["#D9782E","Abóbora"],["#C9A227","Mostarda"],["#708238","Verde-oliva"],["#A0522D","Ferrugem"],["#6B4226","Marrom-chocolate"],["#C9962C","Dourado"],["#B9603C","Terracota"],["#3C8A7A","Verde-azulado quente"],["#5EC7CC","Turquesa quente"],["#C9432E","Tomate"],["#C79A5B","Camelo"],["#5C6E2E","Verde-musgo"],["#7A3C2E","Vinho-terroso"],["#A87A1F","Mostarda escura"],["#C9985E","Bege-caramelo"],["#B56A3C","Cobre"],["#E0A32E","Marigold"],["#8A5A2E","Cognac"],["#3E5C2E","Verde-floresta quente"],["#7A5C2E","Bronze"],["#A66A2E","Caramelo escuro"],["#C97050","Coral terroso"],["#C97A5C","Salmão queimado"],["#A89968","Cáqui"],["#8A3B22","Marrom-avermelhado"]].map(([hex,nome])=>({hex,nome})),
+    paleta: paletteFromGrid(
+      [
+        ["#4f452c", "#373f1b", "#2b4538", "#345152", "#2d6268", "#412d58", "#650f50", "#4f0325", "#56121d", "#64353b", "#aa303b", "#af2300", "#b24e10", "#79372e", "#4d2f2b", "#554031", "#3e3222", "#805a03", "#b26c05", "#3b1a0e"],
+        ["#646521", "#244b2c", "#1d6560", "#214e59", "#1c7e87", "#6a357b", "#84206e", "#72133f", "#801825", "#9b5c65", "#ca3a47", "#e82e03", "#e46313", "#af3f29", "#83493d", "#765b3a", "#575733", "#b1841e", "#ca7c09", "#5f2c1f"],
+        ["#a8a82c", "#29692a", "#458271", "#20787f", "#4b98a8", "#8f488d", "#9c3481", "#992d5f", "#af2d3e", "#c58d8e", "#d65662", "#d55738", "#e87a34", "#cb5f4b", "#a76356", "#bc9855", "#686751", "#dbac38", "#ea9825", "#a46641"],
+        ["#9ba46b", "#4f9634", "#379a7c", "#37adb8", "#68c1d5", "#a156a5", "#b763a4", "#c85a8d", "#c55d6a", "#d8baba", "#db8888", "#e37959", "#dc9261", "#bf796d", "#c3947e", "#bfa47c", "#a6967c", "#ae955c", "#ed9752", "#b88a62"],
+        ["#b9b782", "#8fba4a", "#8ecab9", "#8dc9cf", "#80dae9", "#d093d7", "#bf82b9", "#da8eb2", "#c5818a", "#f0e3d7", "#edc3ba", "#e38382", "#e1b191", "#deab98", "#dcab85", "#ddd69e", "#e8dccc", "#e9d260", "#edb450", "#f1b788"],
+      ],
+      OUTONO_QUENTE_FAMILIES,
+    ),
     evitar: [["#E8C7D2","Rosa gelo"],["#6E8FBF","Azul frio"],["#000000","Preto"],["#FFFFFF","Branco puro"],["#C2308A","Magenta"],["#B0A0D0","Roxo-lavanda"],["#A9ABAE","Cinza-prata"],["#B8D0E8","Azul-bebê"],["#D9C9E8","Lilás claro"]].map(([hex,nome])=>({hex,nome})),
   },
   "Outono Profundo": {
@@ -219,11 +261,28 @@ function closestColor(rgb, colors, source) {
   }, null);
 }
 
-function matchClothing(dominantRgb, season) {
-  const presetPalette = SEASON_PRESETS[season.subtom]?.paleta || [];
-  const primaryPalette = [...(season.paleta || []), ...presetPalette].filter(
+function isPresetSeason(season) {
+  const preset = SEASON_PRESETS[season?.subtom];
+  if (!preset) return false;
+  return (
+    season.origem === "preset" ||
+    (season.resumo === preset.resumo &&
+      season.estacao === preset.estacao &&
+      season.temperatura === preset.temperatura &&
+      season.contraste === preset.contraste)
+  );
+}
+
+function primaryPaletteForSeason(season) {
+  const presetPalette = SEASON_PRESETS[season?.subtom]?.paleta || [];
+  if (isPresetSeason(season)) return presetPalette;
+  return [...(season?.paleta || []), ...presetPalette].filter(
     (color, index, list) => list.findIndex((item) => item.hex === color.hex) === index,
   );
+}
+
+function matchClothing(dominantRgb, season) {
+  const primaryPalette = primaryPaletteForSeason(season);
   const sisterName = SISTER_MAP[season.subtom];
   const sisterPalette = sisterName ? SEASON_PRESETS[sisterName]?.paleta || [] : [];
   const ownBest = closestColor(dominantRgb, primaryPalette, "principal");
@@ -291,6 +350,37 @@ function verdictText(m) {
 
 /* ---------- swatch fan ---------- */
 function Fan({ colors, small }) {
+  const compactGrid = colors.length >= 50;
+  if (compactGrid) {
+    return (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(20, minmax(0, 1fr))",
+          gap: 3,
+          padding: 4,
+          background: "rgba(255,255,255,0.38)",
+          borderRadius: 10,
+        }}
+      >
+        {colors.map((c, i) => (
+          <div
+            key={c.hex + i}
+            title={`${c.nome} · ${c.hex}`}
+            aria-label={`${c.nome}, ${c.hex}`}
+            style={{
+              width: "100%",
+              aspectRatio: "1 / 1",
+              background: c.hex,
+              borderRadius: 2,
+              border: "1px solid rgba(0,0,0,0.05)",
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
       {colors.map((c, i) => (
@@ -383,7 +473,15 @@ export default function App() {
       try {
         const saved = window.localStorage.getItem("coloracao:resultado");
         if (saved) {
-          setSeason(JSON.parse(saved));
+          const parsed = JSON.parse(saved);
+          const preset = SEASON_PRESETS[parsed.subtom];
+          const migrated = isPresetSeason(parsed)
+            ? { subtom: parsed.subtom, ...preset, origem: "preset" }
+            : parsed;
+          setSeason(migrated);
+          if (migrated !== parsed) {
+            window.localStorage.setItem("coloracao:resultado", JSON.stringify(migrated));
+          }
           setStep("result");
           return;
         }
@@ -422,9 +520,10 @@ export default function App() {
       const cleaned = textBlock.text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(cleaned);
       if (!parsed.paleta || !parsed.evitar) throw new Error("Resposta incompleta.");
-      setSeason(parsed);
+      const analyzed = { ...parsed, origem: "analise" };
+      setSeason(analyzed);
       try {
-        window.localStorage.setItem("coloracao:resultado", JSON.stringify(parsed));
+        window.localStorage.setItem("coloracao:resultado", JSON.stringify(analyzed));
       } catch (e) {}
       setStep("result");
     } catch (err) {
@@ -492,7 +591,7 @@ export default function App() {
 
   async function selectPreset(name) {
     const preset = SEASON_PRESETS[name];
-    const full = { subtom: name, ...preset };
+    const full = { subtom: name, ...preset, origem: "preset" };
     setSeason(full);
     try {
       window.localStorage.setItem("coloracao:resultado", JSON.stringify(full));
@@ -708,9 +807,9 @@ export default function App() {
             <p style={{ fontSize: 14, lineHeight: 1.6, color: T.ink, marginBottom: 24 }}>{season.resumo}</p>
 
             <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: T.muted, marginBottom: 12 }}>
-              SUA PALETA
+              SUA PALETA · {primaryPaletteForSeason(season).length} TONS
             </div>
-            <Fan colors={season.paleta} />
+            <Fan colors={primaryPaletteForSeason(season)} />
 
             <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: T.muted, margin: "28px 0 12px" }}>
               EVITAR
