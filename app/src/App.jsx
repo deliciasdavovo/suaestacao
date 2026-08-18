@@ -76,7 +76,7 @@ const SEASON_PRESETS = {
   "Outono Quente": {
     estacao: "Outono", temperatura: "quente", contraste: "médio",
     resumo: "Subtom quente e dourado com boa saturação. Terrosos vívidos — mostarda, ferrugem, oliva — realçam mais que tons frios, acinzentados ou muito contrastantes como o preto puro.",
-    paleta: [["#D9782E","Abóbora"],["#C9A227","Mostarda"],["#708238","Verde-oliva"],["#A0522D","Ferrugem"],["#6B4226","Marrom-chocolate"],["#C9962C","Dourado"],["#B9603C","Terracota"],["#3C8A7A","Verde-azulado quente"],["#C9432E","Tomate"],["#C79A5B","Camelo"],["#5C6E2E","Verde-musgo"],["#7A3C2E","Vinho-terroso"],["#A87A1F","Mostarda escura"],["#C9985E","Bege-caramelo"],["#B56A3C","Cobre"],["#E0A32E","Marigold"],["#8A5A2E","Cognac"],["#3E5C2E","Verde-floresta quente"],["#7A5C2E","Bronze"],["#A66A2E","Caramelo escuro"],["#C97050","Coral terroso"],["#C97A5C","Salmão queimado"],["#A89968","Cáqui"],["#8A3B22","Marrom-avermelhado"]].map(([hex,nome])=>({hex,nome})),
+    paleta: [["#D9782E","Abóbora"],["#C9A227","Mostarda"],["#708238","Verde-oliva"],["#A0522D","Ferrugem"],["#6B4226","Marrom-chocolate"],["#C9962C","Dourado"],["#B9603C","Terracota"],["#3C8A7A","Verde-azulado quente"],["#5EC7CC","Turquesa quente"],["#C9432E","Tomate"],["#C79A5B","Camelo"],["#5C6E2E","Verde-musgo"],["#7A3C2E","Vinho-terroso"],["#A87A1F","Mostarda escura"],["#C9985E","Bege-caramelo"],["#B56A3C","Cobre"],["#E0A32E","Marigold"],["#8A5A2E","Cognac"],["#3E5C2E","Verde-floresta quente"],["#7A5C2E","Bronze"],["#A66A2E","Caramelo escuro"],["#C97050","Coral terroso"],["#C97A5C","Salmão queimado"],["#A89968","Cáqui"],["#8A3B22","Marrom-avermelhado"]].map(([hex,nome])=>({hex,nome})),
     evitar: [["#E8C7D2","Rosa gelo"],["#6E8FBF","Azul frio"],["#000000","Preto"],["#FFFFFF","Branco puro"],["#C2308A","Magenta"],["#B0A0D0","Roxo-lavanda"],["#A9ABAE","Cinza-prata"],["#B8D0E8","Azul-bebê"],["#D9C9E8","Lilás claro"]].map(([hex,nome])=>({hex,nome})),
   },
   "Outono Profundo": {
@@ -224,19 +224,35 @@ function matchClothing(dominantRgb, season) {
   const sisterPalette = sisterName ? SEASON_PRESETS[sisterName]?.paleta || [] : [];
   const ownBest = closestColor(dominantRgb, season.paleta, "principal");
   const sisterBest = closestColor(dominantRgb, sisterPalette, "irmã");
-  const best = !sisterBest || ownBest.d <= sisterBest.d ? ownBest : sisterBest;
   const bestAvoid = closestColor(dominantRgb, season.evitar || [], "evitar");
 
   // Fotos, compressão e luz alteram um pouco o RGB. Uma cor próxima da cartela
-  // principal ou irmã só é recusada quando ela está claramente colada a um tom a evitar.
+  // principal só é recusada quando ela está claramente colada a um tom a evitar.
+  // A cartela irmã é consultada apenas quando a principal realmente não combina.
+  const candidateMatches = (candidate, tolerance) => {
+    if (!candidate) return false;
+    const exactPalette = candidate.d <= 8;
+    const exactAvoid = bestAvoid?.d <= 8;
+    const closeEnough = candidate.d <= tolerance;
+    const notDominatedByAvoid = !bestAvoid || candidate.d <= bestAvoid.d + 8;
+    const clearlyCloserToPalette = !bestAvoid || candidate.d + 5 < bestAvoid.d;
+    return (
+      exactPalette ||
+      (!exactAvoid && ((closeEnough && notDominatedByAvoid) || clearlyCloserToPalette))
+    );
+  };
+
+  const ownMatches = candidateMatches(ownBest, 32);
+  const sisterMatches = !ownMatches && candidateMatches(sisterBest, 26);
+  const combina = ownMatches || sisterMatches;
+  const best = ownMatches
+    ? ownBest
+    : sisterMatches
+      ? sisterBest
+      : !sisterBest || ownBest.d <= sisterBest.d
+        ? ownBest
+        : sisterBest;
   const exactPalette = best.d <= 8;
-  const exactAvoid = bestAvoid?.d <= 8;
-  const tolerance = best.source === "principal" ? 32 : 26;
-  const closeEnough = best.d <= tolerance;
-  const notDominatedByAvoid = !bestAvoid || best.d <= bestAvoid.d + 8;
-  const clearlyCloserToPalette = !bestAvoid || best.d + 5 < bestAvoid.d;
-  const combina =
-    exactPalette || (!exactAvoid && ((closeEnough && notDominatedByAvoid) || clearlyCloserToPalette));
 
   const proximity = Math.max(0, Math.min(100, 100 - best.d * 1.8));
   const totalDistance = best.d + (bestAvoid?.d || 0);
@@ -247,10 +263,7 @@ function matchClothing(dominantRgb, season) {
   if (best.d <= 4) score = 100;
   else if (exactPalette) score = Math.max(90, score);
 
-  const compatibleColors = [...season.paleta, ...sisterPalette].filter(
-    (color, index, list) => list.findIndex((item) => item.hex === color.hex) === index,
-  );
-  const suggestions = compatibleColors
+  const suggestions = season.paleta
     .map((color) => ({ d: perceptualDistance(dominantRgb, color), color }))
     .sort((a, b) => a.d - b.d)
     .slice(0, 3)
