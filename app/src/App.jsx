@@ -534,27 +534,21 @@ function verdictText(m) {
 
 /* ---------- grade de cores ---------- */
 // Uma única forma de mostrar cartela no app: quadradinhos retos numa grade.
-// A densidade muda com o tamanho da cartela, o desenho não.
 // Cartela completa tem uma família por coluna e um nível por linha, e nem toda
-// cartela tem o mesmo número de famílias — daí as colunas saírem do próprio
-// tamanho. Nas cartelas menores escolhe o número de colunas que deixa a última
-// linha mais cheia, pra não sobrar um vão esquisito no fim.
-function balancedColumns(count) {
-  if (count >= 50) {
-    return count % PALETTE_LEVELS.length === 0 ? count / PALETTE_LEVELS.length : 20;
-  }
-  if (count <= 4) return count;
-  let best = Math.min(count, 7);
-  let bestGap = Infinity;
-  for (let c = 8; c >= 4; c--) {
-    if (c > count) continue;
-    const gap = (c - (count % c)) % c;
-    if (gap < bestGap) {
-      bestGap = gap;
-      best = c;
-    }
-  }
-  return best;
+// cartela tem o mesmo número de famílias — daí as colunas saírem do tamanho dela.
+//
+// As outras usam a largura que existe. Com o quadradinho de tamanho fixo, contar
+// colunas sem olhar a largura sobrava metade do painel vazio e quebrava a cartela
+// em fileiras curtas à toa — 19 cores viravam quatro fileiras de cinco. Aqui a
+// conta é: quantos cabem por fileira, quantas fileiras isso dá, e então divide
+// por igual entre essas fileiras, pra não terminar com uma fileira quase vazia.
+function columnsFor(count, size, gap, available) {
+  const levels = PALETTE_LEVELS.length;
+  if (count >= 50 && count % levels === 0) return count / levels;
+  const fit = available > 0 ? Math.floor((available + gap) / (size + gap)) : count;
+  const perRow = Math.max(1, Math.min(count, fit));
+  const rows = Math.ceil(count / perRow);
+  return Math.ceil(count / rows);
 }
 
 // Quadradinho do mesmo tamanho em toda cartela, tenha ela 9 cores ou 105 — antes
@@ -566,19 +560,24 @@ function Palette({ colors, columns, interactive = true, hint = false, size = SWA
   const [selected, setSelected] = useState(null);
   const scrollRef = useRef(null);
   const [overflowing, setOverflowing] = useState(false);
-  const cols = columns || balancedColumns(colors.length);
+  const [available, setAvailable] = useState(0);
   const active = selected != null ? colors[selected] : null;
   const gap = Math.max(3, Math.round(size * 0.12));
+  const padding = gap + 2;
+  const cols = columns || columnsFor(colors.length, size, gap, available - padding * 2);
 
-  // com o quadradinho de tamanho fixo, cartela larga não cabe na tela. Só dá pra
-  // saber se sobrou conteúdo medindo, porque isso depende da largura da tela.
+  // quantas colunas cabem e se sobrou conteúdo dependem da largura da tela, então
+  // as duas coisas só dá pra saber medindo o painel depois que ele existe.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return undefined;
-    const check = () => setOverflowing(el.scrollWidth > el.clientWidth + 1);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
+    const measure = () => {
+      setAvailable(el.clientWidth);
+      setOverflowing(el.scrollWidth > el.clientWidth + 1);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
   }, [colors, cols, size]);
 
   return (
