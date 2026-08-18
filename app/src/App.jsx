@@ -220,9 +220,13 @@ function closestColor(rgb, colors, source) {
 }
 
 function matchClothing(dominantRgb, season) {
+  const presetPalette = SEASON_PRESETS[season.subtom]?.paleta || [];
+  const primaryPalette = [...(season.paleta || []), ...presetPalette].filter(
+    (color, index, list) => list.findIndex((item) => item.hex === color.hex) === index,
+  );
   const sisterName = SISTER_MAP[season.subtom];
   const sisterPalette = sisterName ? SEASON_PRESETS[sisterName]?.paleta || [] : [];
-  const ownBest = closestColor(dominantRgb, season.paleta, "principal");
+  const ownBest = closestColor(dominantRgb, primaryPalette, "principal");
   const sisterBest = closestColor(dominantRgb, sisterPalette, "irmã");
   const bestAvoid = closestColor(dominantRgb, season.evitar || [], "evitar");
 
@@ -263,7 +267,7 @@ function matchClothing(dominantRgb, season) {
   if (best.d <= 4) score = 100;
   else if (exactPalette) score = Math.max(90, score);
 
-  const suggestions = season.paleta
+  const suggestions = primaryPalette
     .map((color) => ({ d: perceptualDistance(dominantRgb, color), color }))
     .sort((a, b) => a.d - b.d)
     .slice(0, 3)
