@@ -130,15 +130,16 @@ const SEASON_PRESETS = {
     resumo: "Subtom quente e dourado, com boa saturação. Cores vívidas e quentes — corais, terracotas, dourados — realçam mais que tons frios ou apagados.",
     paleta: paletteFromGrid(
       [
-        ["#c11843", "#502e89", "#462f87", "#0a2b72", "#045668", "#227692", "#208b8a", "#646520", "#284b2b", "#086f4d", "#686053", "#5a4d42", "#945b1b", "#804413", "#582001", "#74002a", "#981819", "#a62d29", "#c98e06", "#dba856"],
-        ["#d92045", "#68229d", "#7658b6", "#0042a7", "#0885b3", "#3390a9", "#27b195", "#839e31", "#316f31", "#149b3a", "#777868", "#795c3e", "#c5752d", "#d3702e", "#9d441b", "#b71d28", "#d50b07", "#ca4a2b", "#eca316", "#f7bd5d"],
-        ["#eb4b77", "#82229c", "#7f6cd4", "#305ad6", "#0ba2c1", "#3ec1cd", "#21c5b3", "#bac75c", "#4f9634", "#44be3f", "#a5a891", "#8a683a", "#dc8c43", "#df8c56", "#954b38", "#d0373d", "#ff3b3d", "#fe713b", "#fec843", "#facb61"],
-        ["#f06d82", "#a560c9", "#978de4", "#5d86de", "#00bee2", "#65c2cb", "#50bab4", "#d8d677", "#8fbb4a", "#6dd781", "#bcbeaf", "#c29f6b", "#e5a76c", "#e5a881", "#eca279", "#d55869", "#fd7682", "#ffa288", "#f9d35b", "#f7e6ac"],
-        ["#f8adb5", "#d793e8", "#c2b7ef", "#98b9fd", "#65e4ff", "#7fede6", "#7dd9c4", "#e4de98", "#b2d876", "#9bca94", "#eae6d6", "#d6bb8c", "#f0cb98", "#ebba99", "#fec8a3", "#e1818e", "#f98c7f", "#f8bfa2", "#f4e28c", "#faf19f"],
+        ["#c21843", "#512e89", "#463087", "#0a2c72", "#055668", "#237692", "#208c8a", "#646521", "#284b2b", "#08704d", "#686053", "#5a4e42", "#945b1c", "#804513", "#592001", "#75002a", "#98181a", "#a62d2a", "#c98f07", "#dba856"],
+        ["#da2045", "#68229d", "#7658b6", "#0042a7", "#0886b3", "#3391a9", "#27b195", "#849e31", "#316f31", "#149b3a", "#777868", "#795c3e", "#c5752d", "#d3702e", "#9d441c", "#b71e28", "#d50b07", "#ca4a2b", "#eca316", "#f7bd5d"],
+        ["#eb4b77", "#82229c", "#7f6cd4", "#305ad6", "#0ca2c1", "#3ec2cd", "#21c5b3", "#bac75d", "#4f9634", "#44be3f", "#a5a891", "#8a683a", "#dc8c43", "#df8c56", "#954b38", "#d0383d", "#ff3b3d", "#fe713b", "#fec843", "#facb61"],
+        ["#f06d82", "#a560c9", "#978de4", "#5d86de", "#01bee2", "#66c2cb", "#50bab4", "#d8d677", "#8fbb4a", "#6ed782", "#bcbeaf", "#c29f6b", "#e5a76c", "#e5a881", "#eda27a", "#d55969", "#fd7682", "#ffa288", "#f9d35b", "#f7e6ac"],
+        ["#f8aeb5", "#d794e8", "#c2b7ef", "#98b9fd", "#65e4ff", "#7feee6", "#7ed9c4", "#e4de98", "#b2d876", "#9bca94", "#eae7d6", "#d6bb8c", "#f0cc98", "#ebbb9a", "#ffc9a3", "#e1828e", "#fa8c80", "#f8bfa2", "#f4e28d", "#faf29f"],
       ],
       PRIMAVERA_QUENTE_FAMILIES,
     ),
-    evitar: [["#BFD9EA","Azul gelo"],["#E8B8C8","Rosa frio"],["#000000","Preto"],["#9A9691","Cinza"],["#5C1F2E","Vinho"],["#7A8A9A","Cinza-azulado"],["#5C4A7A","Roxo frio"]].map(([hex,nome])=>({hex,nome})),
+    premium: [["#FE713B","Coral vibrante"],["#FF3B3D","Vermelho tomate"],["#D3702E","Laranja vivo"],["#DC8C43","Laranja dourado"],["#E5A76C","Damasco"],["#FFA288","Pêssego quente"],["#ECA316","Amarelo dourado"],["#FEC843","Amarelo sol"],["#F9D35B","Amarelo claro quente"],["#BAC75D","Chartreuse quente"],["#8FBB4A","Verde maçã quente"],["#44BE3F","Verde vivo"],["#21C5B3","Turquesa quente"],["#01BEE2","Água vibrante"],["#0CA2C1","Azul tropical"],["#3391A9","Azul-petróleo claro"],["#F06D82","Rosa coral"],["#FD7682","Salmão quente"],["#C98F07","Ouro quente"],["#F7BD5D","Mel dourado"]].map(([hex,nome])=>({hex,nome})),
+    evitar: [["#000000","Preto puro"],["#FFFFFF","Branco óptico frio"],["#4B4F54","Cinza chumbo"],["#8A9099","Cinza frio médio"],["#D9DEE4","Cinza gelo"],["#8A7F84","Taupe frio"],["#6E625E","Marrom acinzentado frio"],["#1F2A44","Azul marinho frio"],["#0047AB","Azul cobalto frio"],["#CFE8FF","Azul gelo"],["#D8C9F0","Lavanda fria"],["#B9A7C9","Lilás acinzentado"],["#4F3B78","Roxo azulado escuro"],["#E5007D","Pink azulado"],["#C1006F","Magenta fria"],["#6A1B3F","Bordô frio"],["#5C2033","Vinho azulado"],["#B7848F","Rosa queimado frio"],["#C8F2E6","Verde menta gelado"],["#DDEBFF","Pastel gelado azulado"]].map(([hex,nome])=>({hex,nome})),
   },
   "Primavera Brilhante": {
     estacao: "Primavera", temperatura: "neutra-quente", contraste: "alto",
