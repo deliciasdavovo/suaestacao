@@ -30,6 +30,28 @@ const USER_PROMPT =
   "Analise esta foto e retorne o JSON da coloração pessoal, seguindo exatamente o schema do system prompt.";
 
 const PALETTE_LEVELS = ["profundo", "escuro", "médio", "claro", "suave"];
+const PRIMAVERA_QUENTE_FAMILIES = [
+  "Rosa-framboesa",
+  "Roxo",
+  "Violeta",
+  "Azul-royal",
+  "Azul-petróleo",
+  "Azul-piscina",
+  "Turquesa",
+  "Oliva",
+  "Verde-folha",
+  "Verde-esmeralda",
+  "Cinza quente",
+  "Marrom",
+  "Âmbar",
+  "Laranja queimado",
+  "Terracota",
+  "Vinho",
+  "Vermelho",
+  "Vermelho-coral",
+  "Mostarda",
+  "Dourado",
+];
 const OUTONO_QUENTE_FAMILIES = [
   "Oliva",
   "Verde",
@@ -53,6 +75,17 @@ const OUTONO_QUENTE_FAMILIES = [
   "Caramelo",
 ];
 
+// mesma cartela do paletteFromGrid, só que descrita família a família
+// (cada entrada é [nome, [do mais profundo ao mais suave]).
+function paletteFromFamilies(families) {
+  return PALETTE_LEVELS.flatMap((level, levelIndex) =>
+    families.map(([nome, tons]) => ({
+      hex: tons[levelIndex].toUpperCase(),
+      nome: `${nome} ${level}`,
+    })),
+  );
+}
+
 function paletteFromGrid(rows, families) {
   return rows.flatMap((row, rowIndex) =>
     row.map((hex, columnIndex) => ({
@@ -73,7 +106,16 @@ const SEASON_PRESETS = {
   "Primavera Quente": {
     estacao: "Primavera", temperatura: "quente", contraste: "médio",
     resumo: "Subtom quente e dourado, com boa saturação. Cores vívidas e quentes — corais, terracotas, dourados — realçam mais que tons frios ou apagados.",
-    paleta: [["#F2734F","Coral"],["#C9683F","Terracota"],["#E8A93B","Amarelo dourado"],["#8FBF4A","Verde-maçã"],["#3FB6A8","Turquesa quente"],["#E24B36","Tomate"],["#C79A5B","Camelo"],["#F0A97A","Pêssego"],["#F3E6C8","Marfim quente"],["#E8752D","Laranja"],["#E0B93C","Amarelo-ouro"],["#4FAF7A","Verde-jade quente"],["#F2957A","Salmão"],["#D9B87A","Bege dourado"]].map(([hex,nome])=>({hex,nome})),
+    paleta: paletteFromGrid(
+      [
+        ["#c11843", "#502e89", "#462f87", "#0a2b72", "#045668", "#227692", "#208b8a", "#646520", "#284b2b", "#086f4d", "#686053", "#5a4d42", "#945b1b", "#804413", "#582001", "#74002a", "#981819", "#a62d29", "#c98e06", "#dba856"],
+        ["#d92045", "#68229d", "#7658b6", "#0042a7", "#0885b3", "#3390a9", "#27b195", "#839e31", "#316f31", "#149b3a", "#777868", "#795c3e", "#c5752d", "#d3702e", "#9d441b", "#b71d28", "#d50b07", "#ca4a2b", "#eca316", "#f7bd5d"],
+        ["#eb4b77", "#82229c", "#7f6cd4", "#305ad6", "#0ba2c1", "#3ec1cd", "#21c5b3", "#bac75c", "#4f9634", "#44be3f", "#a5a891", "#8a683a", "#dc8c43", "#df8c56", "#954b38", "#d0373d", "#ff3b3d", "#fe713b", "#fec843", "#facb61"],
+        ["#f06d82", "#a560c9", "#978de4", "#5d86de", "#00bee2", "#65c2cb", "#50bab4", "#d8d677", "#8fbb4a", "#6dd781", "#bcbeaf", "#c29f6b", "#e5a76c", "#e5a881", "#eca279", "#d55869", "#fd7682", "#ffa288", "#f9d35b", "#f7e6ac"],
+        ["#f8adb5", "#d793e8", "#c2b7ef", "#98b9fd", "#65e4ff", "#7fede6", "#7dd9c4", "#e4de98", "#b2d876", "#9bca94", "#eae6d6", "#d6bb8c", "#f0cb98", "#ebba99", "#fec8a3", "#e1818e", "#f98c7f", "#f8bfa2", "#f4e28c", "#faf19f"],
+      ],
+      PRIMAVERA_QUENTE_FAMILIES,
+    ),
     evitar: [["#BFD9EA","Azul gelo"],["#E8B8C8","Rosa frio"],["#000000","Preto"],["#9A9691","Cinza"],["#5C1F2E","Vinho"],["#7A8A9A","Cinza-azulado"],["#5C4A7A","Roxo frio"]].map(([hex,nome])=>({hex,nome})),
   },
   "Primavera Brilhante": {
@@ -136,7 +178,28 @@ const SEASON_PRESETS = {
   "Inverno Frio": {
     estacao: "Inverno", temperatura: "fria", contraste: "alto",
     resumo: "Subtom frio e contraste alto entre pele, olhos e cabelo. Cores puras e frias — azul, fúcsia, esmeralda — favorecem mais que tons quentes ou terrosos.",
-    paleta: [["#2E5CA8","Azul verdadeiro"],["#E8B8D0","Rosa gelo"],["#C2408A","Fúcsia"],["#1F8A5C","Esmeralda"],["#16130F","Preto"],["#FBFAF6","Branco puro"],["#5C2E8A","Roxo royal"],["#C21F2E","Vermelho frio"],["#A9ABAE","Cinza-prata"],["#1A2547","Azul-marinho"],["#4A2E8A","Roxo-violeta"],["#1F7A6A","Verde-jade frio"],["#C7CBD0","Cinza-gelo"],["#1F4A5C","Azul-petróleo"]].map(([hex,nome])=>({hex,nome})),
+    paleta: paletteFromFamilies([
+      ["Amarelo limão", ["#b5a617", "#ebd81e", "#f0e256", "#ece6ac", "#f7f5e9"]],
+      ["Lima fria", ["#9ca02c", "#cbd039", "#d8dc6a", "#e2e3b5", "#f5f5eb"]],
+      ["Verde esmeralda", ["#04624e", "#00a380", "#00e0b0", "#4ee4c4", "#a8e6d8"]],
+      ["Verde jade", ["#046162", "#00a2a3", "#00dfe0", "#4ee4e4", "#a8e5e6"]],
+      ["Turquesa", ["#13534d", "#1b897e", "#25bcad", "#66ccc2", "#b2dcd8"]],
+      ["Verde menta", ["#21453f", "#327167", "#459b8e", "#7cb6ad", "#bbd3cf"]],
+      ["Teal profundo", ["#08555e", "#088d9c", "#0ac1d6", "#55d0dd", "#abdde3"]],
+      ["Verde acinzentado", ["#2b3b36", "#436058", "#5c8478", "#8ca69f", "#c1ccc9"]],
+      ["Azul marinho", ["#042e62", "#0049a3", "#0064e0", "#4e91e4", "#a8c4e6"]],
+      ["Azul royal", ["#0f2757", "#143d8f", "#1b53c5", "#6086d2", "#afbfde"]],
+      ["Azul elétrico", ["#043e62", "#0064a3", "#008ae0", "#4eaae4", "#a8cee6"]],
+      ["Azul céu", ["#1b314b", "#284d7b", "#376aa9", "#7395bf", "#b7c5d7"]],
+      ["Azul sereno", ["#17334f", "#215283", "#2d71b4", "#6c9ac6", "#b4c7d9"]],
+      ["Periwinkle", ["#112655", "#173b8c", "#2051c0", "#6384cf", "#b1bedd"]],
+      ["Violeta-índigo", ["#2b1a4c", "#44267d", "#5d35ac", "#8c71c1", "#c2b7d7"]],
+      ["Roxo", ["#341c4a", "#53297a", "#7339a8", "#9b74be", "#c8b8d6"]],
+      ["Orquídea", ["#41253b", "#6a3a5f", "#914f83", "#af83a6", "#d0becc"]],
+      ["Magenta", ["#60062d", "#a00347", "#dc0462", "#e25090", "#e5a9c3"]],
+      ["Rosa pink", ["#531331", "#8a194f", "#be236d", "#cd6597", "#dcb2c6"]],
+      ["Neutro frio", ["#111313", "#2d3c4b", "#8e8b7f", "#c8c8c8", "#fefefd"]],
+    ]),
     evitar: [["#E8752D","Laranja"],["#8A5A3C","Marrom quente"],["#C9A227","Mostarda"],["#708238","Verde-oliva"],["#F0A97A","Pêssego"],["#D9C39F","Bege-areia"],["#5C6E2E","Verde-musgo"]].map(([hex,nome])=>({hex,nome})),
   },
   "Inverno Brilhante": {
@@ -168,6 +231,17 @@ const SISTER_MAP = {
   "Outono Suave": "Verão Suave",
   "Outono Profundo": "Inverno Profundo",
   "Inverno Profundo": "Outono Profundo",
+};
+
+// para onde o botão "voltar" leva quando não há histórico de navegação
+// (ex.: quem abre o app já com um resultado salvo). null = sem botão.
+const BACK_FALLBACK = {
+  "upload-face": "intro",
+  "select-manual": "intro",
+  result: null,
+  "upload-clothing": "result",
+  "pick-point": "upload-clothing",
+  "match-result": "result",
 };
 
 /* ---------- helpers ---------- */
@@ -228,6 +302,50 @@ function dist(a, b) {
   return Math.sqrt((a.r - b.r) ** 2 + (a.g - b.g) ** 2 + (a.b - b.b) ** 2);
 }
 
+// A cor da luz vira a cor da roupa na foto: lâmpada amarela puxa tudo pro quente,
+// sombra puxa pro azul. As superfícies mais claras da cena são as que mais refletem
+// a luz pura, então a média delas é uma boa estimativa da cor da iluminação.
+function estimateIlluminant(ctx, width, height) {
+  const { data } = ctx.getImageData(0, 0, width, height);
+  const total = width * height;
+  const stride = Math.max(1, Math.round(total / 30000));
+  const samples = [];
+  for (let p = 0; p < total; p += stride) {
+    const i = p * 4;
+    if (data[i + 3] < 128) continue;
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    // pixel estourado perdeu a informação de cor — não diz nada sobre a luz
+    if (r >= 250 && g >= 250 && b >= 250) continue;
+    samples.push({ r, g, b, y: 0.2126 * r + 0.7152 * g + 0.0722 * b });
+  }
+  if (!samples.length) return null;
+  samples.sort((a, b) => b.y - a.y);
+  const brightest = samples.slice(0, Math.max(1, Math.round(samples.length * 0.1)));
+  const mean = (channel) =>
+    brightest.reduce((sum, pixel) => sum + pixel[channel], 0) / brightest.length;
+  return { r: mean("r"), g: mean("g"), b: mean("b") };
+}
+
+// Reequilibra os canais como se a foto tivesse sido tirada sob luz neutra.
+function whiteBalance(rgb, illuminant) {
+  if (!illuminant) return rgb;
+  const gray = (illuminant.r + illuminant.g + illuminant.b) / 3;
+  // foto escura demais: a estimativa fica ruidosa e corrigir só piora
+  if (gray < 40) return rgb;
+  const correct = (value, reference) => {
+    // ganho limitado: tira o dominante da luz sem inventar cor onde a foto é puxada de verdade
+    const gain = Math.max(0.75, Math.min(1.35, gray / Math.max(1, reference)));
+    return Math.max(0, Math.min(255, value * gain));
+  };
+  return {
+    r: correct(rgb.r, illuminant.r),
+    g: correct(rgb.g, illuminant.g),
+    b: correct(rgb.b, illuminant.b),
+  };
+}
+
 function rgbToLab({ r, g, b }) {
   const linearize = (value) => {
     const channel = value / 255;
@@ -246,11 +364,17 @@ function rgbToLab({ r, g, b }) {
   return { l: 116 * fy - 16, a: 500 * (fx - fy), b: 200 * (fy - fz) };
 }
 
+// Mesmo com o branco corrigido, sombra e reflexo ainda mexem no brilho. O matiz é
+// o que define se a cor é da cartela, então L pesa menos que a e b na comparação.
+const LIGHTNESS_WEIGHT = 0.7;
+
 function perceptualDistance(rgb, color) {
   const first = rgbToLab(rgb);
   const second = rgbToLab(hexToRgb(color.hex));
   return Math.sqrt(
-    (first.l - second.l) ** 2 + (first.a - second.a) ** 2 + (first.b - second.b) ** 2,
+    ((first.l - second.l) * LIGHTNESS_WEIGHT) ** 2 +
+      (first.a - second.a) ** 2 +
+      (first.b - second.b) ** 2,
   );
 }
 
@@ -348,73 +472,86 @@ function verdictText(m) {
   return "Não é a cor mais favorável pra sua coloração.";
 }
 
-/* ---------- swatch fan ---------- */
-function Fan({ colors, small }) {
-  const compactGrid = colors.length >= 50;
-  if (compactGrid) {
-    return (
+/* ---------- grade de cores ---------- */
+// Uma única forma de mostrar cartela no app: quadradinhos retos numa grade.
+// A densidade muda com o tamanho da cartela, o desenho não.
+// Cartela grande tem 20 famílias por linha; nas menores escolhe o número de colunas
+// que deixa a última linha mais cheia, pra não sobrar um vão esquisito no fim.
+function balancedColumns(count) {
+  if (count >= 50) return 20;
+  if (count <= 4) return count;
+  let best = Math.min(count, 7);
+  let bestGap = Infinity;
+  for (let c = 8; c >= 4; c--) {
+    if (c > count) continue;
+    const gap = (c - (count % c)) % c;
+    if (gap < bestGap) {
+      bestGap = gap;
+      best = c;
+    }
+  }
+  return best;
+}
+
+function Palette({ colors, columns, interactive = true, hint = false }) {
+  const [selected, setSelected] = useState(null);
+  const cols = columns || balancedColumns(colors.length);
+  const dense = cols >= 12;
+  const active = selected != null ? colors[selected] : null;
+
+  return (
+    <div>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(20, minmax(0, 1fr))",
-          gap: 3,
-          padding: 4,
+          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+          gap: dense ? 3 : 6,
+          padding: dense ? 4 : 6,
           background: "rgba(255,255,255,0.38)",
           borderRadius: 10,
         }}
       >
-        {colors.map((c, i) => (
-          <div
-            key={c.hex + i}
-            title={`${c.nome} · ${c.hex}`}
-            aria-label={`${c.nome}, ${c.hex}`}
-            style={{
-              width: "100%",
-              aspectRatio: "1 / 1",
-              background: c.hex,
-              borderRadius: 2,
-              border: "1px solid rgba(0,0,0,0.05)",
-            }}
-          />
-        ))}
+        {colors.map((c, i) => {
+          const label = c.nome ? `${c.nome} · ${c.hex}` : c.hex;
+          const isActive = selected === i;
+          return (
+            <button
+              key={c.hex + i}
+              type="button"
+              title={label}
+              aria-label={label}
+              aria-pressed={interactive ? isActive : undefined}
+              disabled={!interactive}
+              onClick={() => setSelected(isActive ? null : i)}
+              style={{
+                width: "100%",
+                aspectRatio: "1 / 1",
+                background: c.hex,
+                borderRadius: dense ? 2 : 4,
+                padding: 0,
+                cursor: interactive ? "pointer" : "default",
+                border: isActive
+                  ? `2px solid ${T.ink}`
+                  : "1px solid rgba(0,0,0,0.08)",
+              }}
+            />
+          );
+        })}
       </div>
-    );
-  }
-
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
-      {colors.map((c, i) => (
+      {interactive && (
         <div
-          key={c.hex + i}
           style={{
-            width: small ? 58 : 74,
-            transform: `rotate(${i % 2 === 0 ? -3 : 3}deg) translateY(${i % 3 === 0 ? 0 : 6}px)`,
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 11,
+            color: active ? T.ink : T.muted,
+            marginTop: 8,
+            minHeight: 16,
+            letterSpacing: 0.3,
           }}
         >
-          <div
-            style={{
-              width: "100%",
-              height: small ? 58 : 90,
-              background: c.hex,
-              borderRadius: "10px 10px 3px 3px",
-              boxShadow: "0 4px 10px rgba(34,30,26,0.18)",
-              border: "1px solid rgba(0,0,0,0.06)",
-            }}
-          />
-          <div
-            style={{
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: 10,
-              color: T.muted,
-              textAlign: "center",
-              marginTop: 4,
-              letterSpacing: 0.3,
-            }}
-          >
-            {c.hex.toUpperCase()}
-          </div>
+          {active ? `${active.nome || "cor"} · ${active.hex}` : hint ? "toque numa cor para ver o nome" : ""}
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -453,12 +590,41 @@ function UploadBox({ label, sublabel, onFile, busy }) {
 /* ---------- main app ---------- */
 export default function App() {
   const [step, setStep] = useState("loading");
+  const [history, setHistory] = useState([]);
   const [season, setSeason] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [matchResult, setMatchResult] = useState(null);
   const [clothingPreview, setClothingPreview] = useState(null);
   const [tapImage, setTapImage] = useState(null);
   const [tapPoint, setTapPoint] = useState(null);
+
+  // avança guardando de onde veio, pra o "voltar" refazer o caminho ao contrário
+  function go(next) {
+    setHistory((h) => [...h, step]);
+    setStep(next);
+  }
+  // recomeça um trecho do fluxo: a tela vira raiz e o "voltar" usa o fallback
+  function goRoot(next) {
+    setHistory([]);
+    setStep(next);
+  }
+  function goBack() {
+    if (history.length) {
+      setStep(history[history.length - 1]);
+      setHistory(history.slice(0, -1));
+      return;
+    }
+    const fallback = BACK_FALLBACK[step];
+    if (fallback) setStep(fallback);
+  }
+
+  // telas sem volta: a inicial e as que estão no meio de um processamento
+  const backTarget =
+    step === "loading" || step === "intro" || step === "analyzing"
+      ? null
+      : history.length
+        ? history[history.length - 1]
+        : BACK_FALLBACK[step] || null;
 
   useEffect(() => {
     const link = document.createElement("link");
@@ -525,7 +691,7 @@ export default function App() {
       try {
         window.localStorage.setItem("coloracao:resultado", JSON.stringify(analyzed));
       } catch (e) {}
-      setStep("result");
+      goRoot("result");
     } catch (err) {
       console.error(err);
       setErrorMsg("Não consegui analisar essa foto. Tenta outra com luz natural e o rosto bem visível, sem filtro.");
@@ -537,9 +703,11 @@ export default function App() {
     setErrorMsg("");
     try {
       const resized = await resizeImage(file, 900);
-      setTapImage(resized);
+      // a cor da luz é uma propriedade da foto inteira, então é estimada uma vez só
+      const illuminant = estimateIlluminant(resized.ctx, resized.width, resized.height);
+      setTapImage({ ...resized, illuminant });
       setTapPoint(null);
-      setStep("pick-point");
+      go("pick-point");
     } catch (err) {
       setErrorMsg("Não consegui abrir essa foto. Tenta outra imagem.");
       setStep("upload-clothing");
@@ -577,8 +745,9 @@ export default function App() {
       const values = sample.map((pixel) => pixel[channel]).sort((a, b) => a - b);
       return values[Math.floor(values.length / 2)];
     };
-    const rgb = { r: median("r"), g: median("g"), b: median("b") };
-    setTapPoint({ xPct: xRatio * 100, yPct: yRatio * 100, rgb });
+    const raw = { r: median("r"), g: median("g"), b: median("b") };
+    const rgb = whiteBalance(raw, tapImage.illuminant);
+    setTapPoint({ xPct: xRatio * 100, yPct: yRatio * 100, rgb, raw });
   }
 
   function confirmTapPoint() {
@@ -586,7 +755,7 @@ export default function App() {
     const result = matchClothing(tapPoint.rgb, season);
     setMatchResult(result);
     setClothingPreview(tapImage.dataUrl);
-    setStep("match-result");
+    go("match-result");
   }
 
   async function selectPreset(name) {
@@ -596,7 +765,7 @@ export default function App() {
     try {
       window.localStorage.setItem("coloracao:resultado", JSON.stringify(full));
     } catch (e) {}
-    setStep("result");
+    goRoot("result");
   }
 
   async function resetAll() {
@@ -606,7 +775,7 @@ export default function App() {
     setSeason(null);
     setMatchResult(null);
     setClothingPreview(null);
-    setStep("upload-face");
+    goRoot("upload-face");
   }
 
   const wrap = {
@@ -653,9 +822,34 @@ export default function App() {
     width: "100%",
   };
 
+  const btnBack = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    background: T.paper2,
+    color: T.accent,
+    border: `1px solid ${T.line}`,
+    borderRadius: 999,
+    padding: "8px 16px 8px 12px",
+    fontFamily: "'Inter', sans-serif",
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: "pointer",
+    marginBottom: 18,
+  };
+
   return (
     <div style={wrap}>
       <div style={card}>
+        {backTarget && (
+          <button style={btnBack} onClick={goBack} aria-label="Voltar para a tela anterior">
+            <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>
+              ←
+            </span>
+            Voltar
+          </button>
+        )}
+
         {step === "loading" && <div style={{ textAlign: "center", color: T.muted, paddingTop: 80 }}>carregando…</div>}
 
         {step === "intro" && (
@@ -669,7 +863,9 @@ export default function App() {
               Depois, teste qualquer roupa pra ver se ela combina com você.
             </p>
             <div style={{ margin: "24px 0 30px" }}>
-              <Fan
+              <Palette
+                interactive={false}
+                columns={6}
                 colors={[
                   { hex: "#C9583F" },
                   { hex: "#E8C36A" },
@@ -681,10 +877,10 @@ export default function App() {
               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <button style={btnPrimary} onClick={() => setStep("upload-face")}>
+              <button style={btnPrimary} onClick={() => go("upload-face")}>
                 Descobrir minha coloração
               </button>
-              <button style={btnGhost} onClick={() => setStep("select-manual")}>
+              <button style={btnGhost} onClick={() => go("select-manual")}>
                 Já sei minha coloração
               </button>
             </div>
@@ -707,7 +903,7 @@ export default function App() {
             <UploadBox label="Enviar foto" sublabel="toque para escolher da galeria ou tirar uma foto" onFile={handleFaceFile} />
             <button
               style={{ ...btnGhost, marginTop: 14, border: "none", color: T.muted, textDecoration: "underline" }}
-              onClick={() => setStep("select-manual")}
+              onClick={() => go("select-manual")}
             >
               Já sei minha coloração
             </button>
@@ -746,17 +942,16 @@ export default function App() {
                         color: T.ink,
                       }}
                     >
-                      <span style={{ display: "flex", gap: -4 }}>
+                      <span style={{ display: "flex", gap: 3, flexShrink: 0 }}>
                         {SEASON_PRESETS[name].paleta.slice(0, 4).map((c, i) => (
                           <span
                             key={i}
                             style={{
                               width: 16,
                               height: 16,
-                              borderRadius: "50%",
+                              borderRadius: 3,
                               background: c.hex,
-                              marginLeft: i === 0 ? 0 : -6,
-                              border: "1.5px solid " + T.paper2,
+                              border: "1px solid rgba(0,0,0,0.08)",
                             }}
                           />
                         ))}
@@ -767,7 +962,7 @@ export default function App() {
                 </div>
               </div>
             ))}
-            <button style={{ ...btnGhost, marginTop: 4 }} onClick={() => setStep("intro")}>
+            <button style={{ ...btnGhost, marginTop: 4 }} onClick={goBack}>
               Voltar
             </button>
           </div>
@@ -809,12 +1004,12 @@ export default function App() {
             <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: T.muted, marginBottom: 12 }}>
               SUA PALETA · {primaryPaletteForSeason(season).length} TONS
             </div>
-            <Fan colors={primaryPaletteForSeason(season)} />
+            <Palette key={`paleta-${season.subtom}`} colors={primaryPaletteForSeason(season)} hint />
 
             <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: T.muted, margin: "28px 0 12px" }}>
               EVITAR
             </div>
-            <Fan colors={season.evitar} small />
+            <Palette key={`evitar-${season.subtom}`} colors={season.evitar} />
 
             {SISTER_MAP[season.subtom] && SEASON_PRESETS[SISTER_MAP[season.subtom]] && (
               <>
@@ -825,12 +1020,15 @@ export default function App() {
                   Compartilha a característica principal com a sua. Se tiver uma peça amada fora da sua cartela, essas
                   cores extras também costumam funcionar.
                 </p>
-                <Fan colors={SEASON_PRESETS[SISTER_MAP[season.subtom]].paleta} small />
+                <Palette
+                  key={`irma-${season.subtom}`}
+                  colors={SEASON_PRESETS[SISTER_MAP[season.subtom]].paleta}
+                />
               </>
             )}
 
             <div style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 10 }}>
-              <button style={btnPrimary} onClick={() => setStep("upload-clothing")}>
+              <button style={btnPrimary} onClick={() => go("upload-clothing")}>
                 Testar uma roupa
               </button>
               <button style={btnGhost} onClick={resetAll}>
@@ -838,7 +1036,7 @@ export default function App() {
               </button>
               <button
                 style={{ ...btnGhost, border: "none", color: T.muted, textDecoration: "underline" }}
-                onClick={() => setStep("select-manual")}
+                onClick={() => go("select-manual")}
               >
                 Escolher outra coloração manualmente
               </button>
@@ -859,7 +1057,7 @@ export default function App() {
               </div>
             )}
             <UploadBox label="Enviar foto da roupa" sublabel="toque para escolher ou tirar uma foto" onFile={handleClothingFile} />
-            <button style={{ ...btnGhost, marginTop: 16 }} onClick={() => setStep("result")}>
+            <button style={{ ...btnGhost, marginTop: 16 }} onClick={goBack}>
               Voltar pra minha paleta
             </button>
           </div>
@@ -869,15 +1067,36 @@ export default function App() {
           <div>
             <div style={eyebrow}>toque na peça</div>
             <h1 style={{ ...h1, fontSize: 26, marginBottom: 8 }}>Onde está a roupa?</h1>
-            <p style={{ color: T.muted, fontSize: 14, marginBottom: 16, lineHeight: 1.5 }}>
-              Toque exatamente em cima do tecido da peça na foto.
+            <p style={{ color: T.muted, fontSize: 13.5, marginBottom: 12, lineHeight: 1.45 }}>
+              Toque exatamente em cima do tecido da peça. A luz da foto é compensada
+              automaticamente, então sombra e lâmpada amarela pesam menos no resultado.
             </p>
-            <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", lineHeight: 0 }}>
+            {/* a foto é limitada em altura pra o botão continuar visível sem rolar.
+                largura automática mantém o retângulo da imagem colado no elemento,
+                senão a conta do ponto tocado sai do lugar. */}
+            <div
+              style={{
+                position: "relative",
+                borderRadius: 6,
+                overflow: "hidden",
+                lineHeight: 0,
+                width: "fit-content",
+                maxWidth: "100%",
+                margin: "0 auto",
+              }}
+            >
               <img
                 src={tapImage.dataUrl}
                 alt="foto enviada"
                 onClick={handleImageTap}
-                style={{ width: "100%", display: "block", cursor: "crosshair" }}
+                style={{
+                  display: "block",
+                  width: "auto",
+                  height: "auto",
+                  maxWidth: "100%",
+                  maxHeight: "44vh",
+                  cursor: "crosshair",
+                }}
               />
               {tapPoint && (
                 <div
@@ -885,12 +1104,12 @@ export default function App() {
                     position: "absolute",
                     left: `${tapPoint.xPct}%`,
                     top: `${tapPoint.yPct}%`,
-                    width: 30,
-                    height: 30,
-                    borderRadius: "50%",
+                    width: 26,
+                    height: 26,
+                    borderRadius: 4,
                     transform: "translate(-50%,-50%)",
                     border: "3px solid #fff",
-                    boxShadow: "0 0 0 2px rgba(0,0,0,0.35), 0 2px 10px rgba(0,0,0,0.4)",
+                    boxShadow: "0 0 0 2px rgba(0,0,0,0.35)",
                     background: rgbToHex(tapPoint.rgb),
                     pointerEvents: "none",
                   }}
@@ -898,18 +1117,20 @@ export default function App() {
               )}
             </div>
             {tapPoint ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 8, background: rgbToHex(tapPoint.rgb), border: "1px solid rgba(0,0,0,0.1)", flexShrink: 0 }} />
-                <div style={{ fontSize: 13, color: T.muted }}>cor capturada — toque em outro ponto pra ajustar</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 4, background: rgbToHex(tapPoint.rgb), border: "1px solid rgba(0,0,0,0.1)", flexShrink: 0 }} />
+                <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.4 }}>
+                  cor da peça já corrigida pela luz da foto — toque em outro ponto pra ajustar
+                </div>
               </div>
             ) : (
-              <div style={{ fontSize: 13, color: T.muted, marginTop: 14 }}>nenhum ponto tocado ainda</div>
+              <div style={{ fontSize: 12.5, color: T.muted, marginTop: 12 }}>nenhum ponto tocado ainda</div>
             )}
-            <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
               <button style={btnPrimary} disabled={!tapPoint} onClick={confirmTapPoint}>
                 Usar essa cor
               </button>
-              <button style={btnGhost} onClick={() => setStep("upload-clothing")}>
+              <button style={btnGhost} onClick={goBack}>
                 Trocar foto
               </button>
             </div>
@@ -923,12 +1144,12 @@ export default function App() {
               <img
                 src={clothingPreview}
                 alt="roupa testada"
-                style={{ width: 120, height: 120, objectFit: "cover", borderRadius: 14, margin: "14px auto", boxShadow: "0 6px 16px rgba(0,0,0,0.15)" }}
+                style={{ width: 120, height: 120, objectFit: "cover", borderRadius: 6, margin: "14px auto", border: "1px solid rgba(0,0,0,0.08)" }}
               />
             )}
             <div style={{ display: "flex", justifyContent: "center", margin: "14px 0" }}>
               <div>
-                <div style={{ width: 46, height: 46, borderRadius: 10, background: matchResult.dominantHex, border: "1px solid rgba(0,0,0,0.1)", margin: "0 auto" }} />
+                <div style={{ width: 46, height: 46, borderRadius: 4, background: matchResult.dominantHex, border: "1px solid rgba(0,0,0,0.1)", margin: "0 auto" }} />
                 <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: T.muted, marginTop: 4 }}>
                   cor identificada
                 </div>
@@ -967,7 +1188,7 @@ export default function App() {
                 <div style={{ display: "flex", justifyContent: "center", gap: 14 }}>
                   {matchResult.suggestions.map((c, i) => (
                     <div key={c.hex + i}>
-                      <div style={{ width: 46, height: 46, borderRadius: 10, background: c.hex, border: "1px solid rgba(0,0,0,0.1)" }} />
+                      <div style={{ width: 46, height: 46, borderRadius: 4, background: c.hex, border: "1px solid rgba(0,0,0,0.1)" }} />
                       <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: T.muted, marginTop: 4, maxWidth: 60 }}>
                         {c.nome}
                       </div>
@@ -978,10 +1199,10 @@ export default function App() {
             )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <button style={btnPrimary} onClick={() => setStep("upload-clothing")}>
+              <button style={btnPrimary} onClick={() => goRoot("upload-clothing")}>
                 Testar outra peça
               </button>
-              <button style={btnGhost} onClick={() => setStep("result")}>
+              <button style={btnGhost} onClick={() => goRoot("result")}>
                 Ver minha paleta
               </button>
             </div>
