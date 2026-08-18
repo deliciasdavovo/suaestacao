@@ -30,6 +30,28 @@ const USER_PROMPT =
   "Analise esta foto e retorne o JSON da coloração pessoal, seguindo exatamente o schema do system prompt.";
 
 const PALETTE_LEVELS = ["profundo", "escuro", "médio", "claro", "suave"];
+const PRIMAVERA_QUENTE_FAMILIES = [
+  "Rosa-framboesa",
+  "Roxo",
+  "Violeta",
+  "Azul-royal",
+  "Azul-petróleo",
+  "Azul-piscina",
+  "Turquesa",
+  "Oliva",
+  "Verde-folha",
+  "Verde-esmeralda",
+  "Cinza quente",
+  "Marrom",
+  "Âmbar",
+  "Laranja queimado",
+  "Terracota",
+  "Vinho",
+  "Vermelho",
+  "Vermelho-coral",
+  "Mostarda",
+  "Dourado",
+];
 const OUTONO_QUENTE_FAMILIES = [
   "Oliva",
   "Verde",
@@ -73,7 +95,16 @@ const SEASON_PRESETS = {
   "Primavera Quente": {
     estacao: "Primavera", temperatura: "quente", contraste: "médio",
     resumo: "Subtom quente e dourado, com boa saturação. Cores vívidas e quentes — corais, terracotas, dourados — realçam mais que tons frios ou apagados.",
-    paleta: [["#F2734F","Coral"],["#C9683F","Terracota"],["#E8A93B","Amarelo dourado"],["#8FBF4A","Verde-maçã"],["#3FB6A8","Turquesa quente"],["#E24B36","Tomate"],["#C79A5B","Camelo"],["#F0A97A","Pêssego"],["#F3E6C8","Marfim quente"],["#E8752D","Laranja"],["#E0B93C","Amarelo-ouro"],["#4FAF7A","Verde-jade quente"],["#F2957A","Salmão"],["#D9B87A","Bege dourado"]].map(([hex,nome])=>({hex,nome})),
+    paleta: paletteFromGrid(
+      [
+        ["#c11843", "#502e89", "#462f87", "#0a2b72", "#045668", "#227692", "#208b8a", "#646520", "#284b2b", "#086f4d", "#686053", "#5a4d42", "#945b1b", "#804413", "#582001", "#74002a", "#981819", "#a62d29", "#c98e06", "#dba856"],
+        ["#d92045", "#68229d", "#7658b6", "#0042a7", "#0885b3", "#3390a9", "#27b195", "#839e31", "#316f31", "#149b3a", "#777868", "#795c3e", "#c5752d", "#d3702e", "#9d441b", "#b71d28", "#d50b07", "#ca4a2b", "#eca316", "#f7bd5d"],
+        ["#eb4b77", "#82229c", "#7f6cd4", "#305ad6", "#0ba2c1", "#3ec1cd", "#21c5b3", "#bac75c", "#4f9634", "#44be3f", "#a5a891", "#8a683a", "#dc8c43", "#df8c56", "#954b38", "#d0373d", "#ff3b3d", "#fe713b", "#fec843", "#facb61"],
+        ["#f06d82", "#a560c9", "#978de4", "#5d86de", "#00bee2", "#65c2cb", "#50bab4", "#d8d677", "#8fbb4a", "#6dd781", "#bcbeaf", "#c29f6b", "#e5a76c", "#e5a881", "#eca279", "#d55869", "#fd7682", "#ffa288", "#f9d35b", "#f7e6ac"],
+        ["#f8adb5", "#d793e8", "#c2b7ef", "#98b9fd", "#65e4ff", "#7fede6", "#7dd9c4", "#e4de98", "#b2d876", "#9bca94", "#eae6d6", "#d6bb8c", "#f0cb98", "#ebba99", "#fec8a3", "#e1818e", "#f98c7f", "#f8bfa2", "#f4e28c", "#faf19f"],
+      ],
+      PRIMAVERA_QUENTE_FAMILIES,
+    ),
     evitar: [["#BFD9EA","Azul gelo"],["#E8B8C8","Rosa frio"],["#000000","Preto"],["#9A9691","Cinza"],["#5C1F2E","Vinho"],["#7A8A9A","Cinza-azulado"],["#5C4A7A","Roxo frio"]].map(([hex,nome])=>({hex,nome})),
   },
   "Primavera Brilhante": {
@@ -168,6 +199,17 @@ const SISTER_MAP = {
   "Outono Suave": "Verão Suave",
   "Outono Profundo": "Inverno Profundo",
   "Inverno Profundo": "Outono Profundo",
+};
+
+// para onde o botão "voltar" leva quando não há histórico de navegação
+// (ex.: quem abre o app já com um resultado salvo). null = sem botão.
+const BACK_FALLBACK = {
+  "upload-face": "intro",
+  "select-manual": "intro",
+  result: null,
+  "upload-clothing": "result",
+  "pick-point": "upload-clothing",
+  "match-result": "result",
 };
 
 /* ---------- helpers ---------- */
@@ -453,12 +495,41 @@ function UploadBox({ label, sublabel, onFile, busy }) {
 /* ---------- main app ---------- */
 export default function App() {
   const [step, setStep] = useState("loading");
+  const [history, setHistory] = useState([]);
   const [season, setSeason] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [matchResult, setMatchResult] = useState(null);
   const [clothingPreview, setClothingPreview] = useState(null);
   const [tapImage, setTapImage] = useState(null);
   const [tapPoint, setTapPoint] = useState(null);
+
+  // avança guardando de onde veio, pra o "voltar" refazer o caminho ao contrário
+  function go(next) {
+    setHistory((h) => [...h, step]);
+    setStep(next);
+  }
+  // recomeça um trecho do fluxo: a tela vira raiz e o "voltar" usa o fallback
+  function goRoot(next) {
+    setHistory([]);
+    setStep(next);
+  }
+  function goBack() {
+    if (history.length) {
+      setStep(history[history.length - 1]);
+      setHistory(history.slice(0, -1));
+      return;
+    }
+    const fallback = BACK_FALLBACK[step];
+    if (fallback) setStep(fallback);
+  }
+
+  // telas sem volta: a inicial e as que estão no meio de um processamento
+  const backTarget =
+    step === "loading" || step === "intro" || step === "analyzing"
+      ? null
+      : history.length
+        ? history[history.length - 1]
+        : BACK_FALLBACK[step] || null;
 
   useEffect(() => {
     const link = document.createElement("link");
@@ -525,7 +596,7 @@ export default function App() {
       try {
         window.localStorage.setItem("coloracao:resultado", JSON.stringify(analyzed));
       } catch (e) {}
-      setStep("result");
+      goRoot("result");
     } catch (err) {
       console.error(err);
       setErrorMsg("Não consegui analisar essa foto. Tenta outra com luz natural e o rosto bem visível, sem filtro.");
@@ -539,7 +610,7 @@ export default function App() {
       const resized = await resizeImage(file, 900);
       setTapImage(resized);
       setTapPoint(null);
-      setStep("pick-point");
+      go("pick-point");
     } catch (err) {
       setErrorMsg("Não consegui abrir essa foto. Tenta outra imagem.");
       setStep("upload-clothing");
@@ -586,7 +657,7 @@ export default function App() {
     const result = matchClothing(tapPoint.rgb, season);
     setMatchResult(result);
     setClothingPreview(tapImage.dataUrl);
-    setStep("match-result");
+    go("match-result");
   }
 
   async function selectPreset(name) {
@@ -596,7 +667,7 @@ export default function App() {
     try {
       window.localStorage.setItem("coloracao:resultado", JSON.stringify(full));
     } catch (e) {}
-    setStep("result");
+    goRoot("result");
   }
 
   async function resetAll() {
@@ -606,7 +677,7 @@ export default function App() {
     setSeason(null);
     setMatchResult(null);
     setClothingPreview(null);
-    setStep("upload-face");
+    goRoot("upload-face");
   }
 
   const wrap = {
@@ -653,9 +724,34 @@ export default function App() {
     width: "100%",
   };
 
+  const btnBack = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    background: T.paper2,
+    color: T.accent,
+    border: `1px solid ${T.line}`,
+    borderRadius: 999,
+    padding: "8px 16px 8px 12px",
+    fontFamily: "'Inter', sans-serif",
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: "pointer",
+    marginBottom: 18,
+  };
+
   return (
     <div style={wrap}>
       <div style={card}>
+        {backTarget && (
+          <button style={btnBack} onClick={goBack} aria-label="Voltar para a tela anterior">
+            <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>
+              ←
+            </span>
+            Voltar
+          </button>
+        )}
+
         {step === "loading" && <div style={{ textAlign: "center", color: T.muted, paddingTop: 80 }}>carregando…</div>}
 
         {step === "intro" && (
@@ -681,10 +777,10 @@ export default function App() {
               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <button style={btnPrimary} onClick={() => setStep("upload-face")}>
+              <button style={btnPrimary} onClick={() => go("upload-face")}>
                 Descobrir minha coloração
               </button>
-              <button style={btnGhost} onClick={() => setStep("select-manual")}>
+              <button style={btnGhost} onClick={() => go("select-manual")}>
                 Já sei minha coloração
               </button>
             </div>
@@ -707,7 +803,7 @@ export default function App() {
             <UploadBox label="Enviar foto" sublabel="toque para escolher da galeria ou tirar uma foto" onFile={handleFaceFile} />
             <button
               style={{ ...btnGhost, marginTop: 14, border: "none", color: T.muted, textDecoration: "underline" }}
-              onClick={() => setStep("select-manual")}
+              onClick={() => go("select-manual")}
             >
               Já sei minha coloração
             </button>
@@ -767,7 +863,7 @@ export default function App() {
                 </div>
               </div>
             ))}
-            <button style={{ ...btnGhost, marginTop: 4 }} onClick={() => setStep("intro")}>
+            <button style={{ ...btnGhost, marginTop: 4 }} onClick={goBack}>
               Voltar
             </button>
           </div>
@@ -830,7 +926,7 @@ export default function App() {
             )}
 
             <div style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 10 }}>
-              <button style={btnPrimary} onClick={() => setStep("upload-clothing")}>
+              <button style={btnPrimary} onClick={() => go("upload-clothing")}>
                 Testar uma roupa
               </button>
               <button style={btnGhost} onClick={resetAll}>
@@ -838,7 +934,7 @@ export default function App() {
               </button>
               <button
                 style={{ ...btnGhost, border: "none", color: T.muted, textDecoration: "underline" }}
-                onClick={() => setStep("select-manual")}
+                onClick={() => go("select-manual")}
               >
                 Escolher outra coloração manualmente
               </button>
@@ -859,7 +955,7 @@ export default function App() {
               </div>
             )}
             <UploadBox label="Enviar foto da roupa" sublabel="toque para escolher ou tirar uma foto" onFile={handleClothingFile} />
-            <button style={{ ...btnGhost, marginTop: 16 }} onClick={() => setStep("result")}>
+            <button style={{ ...btnGhost, marginTop: 16 }} onClick={goBack}>
               Voltar pra minha paleta
             </button>
           </div>
@@ -909,7 +1005,7 @@ export default function App() {
               <button style={btnPrimary} disabled={!tapPoint} onClick={confirmTapPoint}>
                 Usar essa cor
               </button>
-              <button style={btnGhost} onClick={() => setStep("upload-clothing")}>
+              <button style={btnGhost} onClick={goBack}>
                 Trocar foto
               </button>
             </div>
@@ -978,10 +1074,10 @@ export default function App() {
             )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <button style={btnPrimary} onClick={() => setStep("upload-clothing")}>
+              <button style={btnPrimary} onClick={() => goRoot("upload-clothing")}>
                 Testar outra peça
               </button>
-              <button style={btnGhost} onClick={() => setStep("result")}>
+              <button style={btnGhost} onClick={() => goRoot("result")}>
                 Ver minha paleta
               </button>
             </div>
