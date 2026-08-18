@@ -519,52 +519,93 @@ function balancedColumns(count) {
   return best;
 }
 
-function Palette({ colors, columns, interactive = true, hint = false }) {
+// Quadradinho do mesmo tamanho em toda cartela, tenha ela 9 cores ou 105 — antes
+// o tamanho saía da largura dividida pelas colunas, e cada coloração aparecia
+// numa escala diferente. Cartela larga passa a rolar de lado dentro do painel.
+const SWATCH_SIZE = 32;
+
+function Palette({ colors, columns, interactive = true, hint = false, size = SWATCH_SIZE }) {
   const [selected, setSelected] = useState(null);
+  const scrollRef = useRef(null);
+  const [overflowing, setOverflowing] = useState(false);
   const cols = columns || balancedColumns(colors.length);
-  const dense = cols >= 12;
   const active = selected != null ? colors[selected] : null;
+  const gap = Math.max(3, Math.round(size * 0.12));
+
+  // com o quadradinho de tamanho fixo, cartela larga não cabe na tela. Só dá pra
+  // saber se sobrou conteúdo medindo, porque isso depende da largura da tela.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return undefined;
+    const check = () => setOverflowing(el.scrollWidth > el.clientWidth + 1);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [colors, cols, size]);
 
   return (
     <div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-          gap: dense ? 3 : 6,
-          padding: dense ? 4 : 6,
-          background: "rgba(255,255,255,0.38)",
-          borderRadius: 10,
-        }}
-      >
-        {colors.map((c, i) => {
-          const label = c.nome ? `${c.nome} · ${c.hex}` : c.hex;
-          const isActive = selected === i;
-          return (
-            <button
-              key={c.hex + i}
-              type="button"
-              title={label}
-              aria-label={label}
-              aria-pressed={interactive ? isActive : undefined}
-              disabled={!interactive}
-              onClick={() => setSelected(isActive ? null : i)}
-              style={{
-                width: "100%",
-                aspectRatio: "1 / 1",
-                background: c.hex,
-                borderRadius: dense ? 2 : 4,
-                padding: 0,
-                cursor: interactive ? "pointer" : "default",
-                border: isActive
-                  ? `2px solid ${T.ink}`
-                  : "1px solid rgba(0,0,0,0.08)",
-              }}
-            />
-          );
-        })}
+      <div style={{ position: "relative" }}>
+        <div ref={scrollRef} style={{ overflowX: "auto", borderRadius: 10 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${cols}, ${size}px)`,
+              gap,
+              padding: gap + 2,
+              background: "rgba(255,255,255,0.38)",
+              borderRadius: 10,
+              width: "max-content",
+              minWidth: "100%",
+              justifyContent: "center",
+              boxSizing: "border-box",
+            }}
+          >
+            {colors.map((c, i) => {
+              const label = c.nome ? `${c.nome} · ${c.hex}` : c.hex;
+              const isActive = selected === i;
+              return (
+                <button
+                  key={c.hex + i}
+                  type="button"
+                  title={label}
+                  aria-label={label}
+                  aria-pressed={interactive ? isActive : undefined}
+                  disabled={!interactive}
+                  onClick={() => setSelected(isActive ? null : i)}
+                  style={{
+                    width: "100%",
+                    aspectRatio: "1 / 1",
+                    background: c.hex,
+                    borderRadius: 4,
+                    padding: 0,
+                    cursor: interactive ? "pointer" : "default",
+                    border: isActive
+                      ? `2px solid ${T.ink}`
+                      : "1px solid rgba(0,0,0,0.08)",
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
+        {overflowing && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              width: 28,
+              height: "100%",
+              borderRadius: "0 10px 10px 0",
+              background: `linear-gradient(to right, rgba(237,234,226,0), ${T.paper})`,
+              pointerEvents: "none",
+            }}
+          />
+        )}
       </div>
-      {interactive && (
+      {(interactive || overflowing) && (
         <div
           style={{
             fontFamily: "'IBM Plex Mono', monospace",
@@ -575,7 +616,13 @@ function Palette({ colors, columns, interactive = true, hint = false }) {
             letterSpacing: 0.3,
           }}
         >
-          {active ? `${active.nome || "cor"} · ${active.hex}` : hint ? "toque numa cor para ver o nome" : ""}
+          {active
+            ? `${active.nome || "cor"} · ${active.hex}`
+            : overflowing
+              ? `arraste pro lado para ver as ${cols} famílias`
+              : hint
+                ? "toque numa cor para ver o nome"
+                : ""}
         </div>
       )}
     </div>
@@ -892,6 +939,7 @@ export default function App() {
               <Palette
                 interactive={false}
                 columns={6}
+                size={54}
                 colors={[
                   { hex: "#C9583F" },
                   { hex: "#E8C36A" },
