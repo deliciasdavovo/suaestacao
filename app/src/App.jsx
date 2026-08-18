@@ -75,6 +75,17 @@ const OUTONO_QUENTE_FAMILIES = [
   "Caramelo",
 ];
 
+// mesma cartela do paletteFromGrid, só que descrita família a família
+// (cada entrada é [nome, [do mais profundo ao mais suave]).
+function paletteFromFamilies(families) {
+  return PALETTE_LEVELS.flatMap((level, levelIndex) =>
+    families.map(([nome, tons]) => ({
+      hex: tons[levelIndex].toUpperCase(),
+      nome: `${nome} ${level}`,
+    })),
+  );
+}
+
 function paletteFromGrid(rows, families) {
   return rows.flatMap((row, rowIndex) =>
     row.map((hex, columnIndex) => ({
@@ -167,7 +178,28 @@ const SEASON_PRESETS = {
   "Inverno Frio": {
     estacao: "Inverno", temperatura: "fria", contraste: "alto",
     resumo: "Subtom frio e contraste alto entre pele, olhos e cabelo. Cores puras e frias — azul, fúcsia, esmeralda — favorecem mais que tons quentes ou terrosos.",
-    paleta: [["#2E5CA8","Azul verdadeiro"],["#E8B8D0","Rosa gelo"],["#C2408A","Fúcsia"],["#1F8A5C","Esmeralda"],["#16130F","Preto"],["#FBFAF6","Branco puro"],["#5C2E8A","Roxo royal"],["#C21F2E","Vermelho frio"],["#A9ABAE","Cinza-prata"],["#1A2547","Azul-marinho"],["#4A2E8A","Roxo-violeta"],["#1F7A6A","Verde-jade frio"],["#C7CBD0","Cinza-gelo"],["#1F4A5C","Azul-petróleo"]].map(([hex,nome])=>({hex,nome})),
+    paleta: paletteFromFamilies([
+      ["Amarelo limão", ["#b5a617", "#ebd81e", "#f0e256", "#ece6ac", "#f7f5e9"]],
+      ["Lima fria", ["#9ca02c", "#cbd039", "#d8dc6a", "#e2e3b5", "#f5f5eb"]],
+      ["Verde esmeralda", ["#04624e", "#00a380", "#00e0b0", "#4ee4c4", "#a8e6d8"]],
+      ["Verde jade", ["#046162", "#00a2a3", "#00dfe0", "#4ee4e4", "#a8e5e6"]],
+      ["Turquesa", ["#13534d", "#1b897e", "#25bcad", "#66ccc2", "#b2dcd8"]],
+      ["Verde menta", ["#21453f", "#327167", "#459b8e", "#7cb6ad", "#bbd3cf"]],
+      ["Teal profundo", ["#08555e", "#088d9c", "#0ac1d6", "#55d0dd", "#abdde3"]],
+      ["Verde acinzentado", ["#2b3b36", "#436058", "#5c8478", "#8ca69f", "#c1ccc9"]],
+      ["Azul marinho", ["#042e62", "#0049a3", "#0064e0", "#4e91e4", "#a8c4e6"]],
+      ["Azul royal", ["#0f2757", "#143d8f", "#1b53c5", "#6086d2", "#afbfde"]],
+      ["Azul elétrico", ["#043e62", "#0064a3", "#008ae0", "#4eaae4", "#a8cee6"]],
+      ["Azul céu", ["#1b314b", "#284d7b", "#376aa9", "#7395bf", "#b7c5d7"]],
+      ["Azul sereno", ["#17334f", "#215283", "#2d71b4", "#6c9ac6", "#b4c7d9"]],
+      ["Periwinkle", ["#112655", "#173b8c", "#2051c0", "#6384cf", "#b1bedd"]],
+      ["Violeta-índigo", ["#2b1a4c", "#44267d", "#5d35ac", "#8c71c1", "#c2b7d7"]],
+      ["Roxo", ["#341c4a", "#53297a", "#7339a8", "#9b74be", "#c8b8d6"]],
+      ["Orquídea", ["#41253b", "#6a3a5f", "#914f83", "#af83a6", "#d0becc"]],
+      ["Magenta", ["#60062d", "#a00347", "#dc0462", "#e25090", "#e5a9c3"]],
+      ["Rosa pink", ["#531331", "#8a194f", "#be236d", "#cd6597", "#dcb2c6"]],
+      ["Neutro frio", ["#111313", "#2d3c4b", "#8e8b7f", "#c8c8c8", "#fefefd"]],
+    ]),
     evitar: [["#E8752D","Laranja"],["#8A5A3C","Marrom quente"],["#C9A227","Mostarda"],["#708238","Verde-oliva"],["#F0A97A","Pêssego"],["#D9C39F","Bege-areia"],["#5C6E2E","Verde-musgo"]].map(([hex,nome])=>({hex,nome})),
   },
   "Inverno Brilhante": {
