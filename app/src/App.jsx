@@ -302,6 +302,50 @@ function dist(a, b) {
   return Math.sqrt((a.r - b.r) ** 2 + (a.g - b.g) ** 2 + (a.b - b.b) ** 2);
 }
 
+// A cor da luz vira a cor da roupa na foto: lâmpada amarela puxa tudo pro quente,
+// sombra puxa pro azul. As superfícies mais claras da cena são as que mais refletem
+// a luz pura, então a média delas é uma boa estimativa da cor da iluminação.
+function estimateIlluminant(ctx, width, height) {
+  const { data } = ctx.getImageData(0, 0, width, height);
+  const total = width * height;
+  const stride = Math.max(1, Math.round(total / 30000));
+  const samples = [];
+  for (let p = 0; p < total; p += stride) {
+    const i = p * 4;
+    if (data[i + 3] < 128) continue;
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    // pixel estourado perdeu a informação de cor — não diz nada sobre a luz
+    if (r >= 250 && g >= 250 && b >= 250) continue;
+    samples.push({ r, g, b, y: 0.2126 * r + 0.7152 * g + 0.0722 * b });
+  }
+  if (!samples.length) return null;
+  samples.sort((a, b) => b.y - a.y);
+  const brightest = samples.slice(0, Math.max(1, Math.round(samples.length * 0.1)));
+  const mean = (channel) =>
+    brightest.reduce((sum, pixel) => sum + pixel[channel], 0) / brightest.length;
+  return { r: mean("r"), g: mean("g"), b: mean("b") };
+}
+
+// Reequilibra os canais como se a foto tivesse sido tirada sob luz neutra.
+function whiteBalance(rgb, illuminant) {
+  if (!illuminant) return rgb;
+  const gray = (illuminant.r + illuminant.g + illuminant.b) / 3;
+  // foto escura demais: a estimativa fica ruidosa e corrigir só piora
+  if (gray < 40) return rgb;
+  const correct = (value, reference) => {
+    // ganho limitado: tira o dominante da luz sem inventar cor onde a foto é puxada de verdade
+    const gain = Math.max(0.75, Math.min(1.35, gray / Math.max(1, reference)));
+    return Math.max(0, Math.min(255, value * gain));
+  };
+  return {
+    r: correct(rgb.r, illuminant.r),
+    g: correct(rgb.g, illuminant.g),
+    b: correct(rgb.b, illuminant.b),
+  };
+}
+
 function rgbToLab({ r, g, b }) {
   const linearize = (value) => {
     const channel = value / 255;
@@ -320,11 +364,17 @@ function rgbToLab({ r, g, b }) {
   return { l: 116 * fy - 16, a: 500 * (fx - fy), b: 200 * (fy - fz) };
 }
 
+// Mesmo com o branco corrigido, sombra e reflexo ainda mexem no brilho. O matiz é
+// o que define se a cor é da cartela, então L pesa menos que a e b na comparação.
+const LIGHTNESS_WEIGHT = 0.7;
+
 function perceptualDistance(rgb, color) {
   const first = rgbToLab(rgb);
   const second = rgbToLab(hexToRgb(color.hex));
   return Math.sqrt(
-    (first.l - second.l) ** 2 + (first.a - second.a) ** 2 + (first.b - second.b) ** 2,
+    ((first.l - second.l) * LIGHTNESS_WEIGHT) ** 2 +
+      (first.a - second.a) ** 2 +
+      (first.b - second.b) ** 2,
   );
 }
 
@@ -422,73 +472,86 @@ function verdictText(m) {
   return "Não é a cor mais favorável pra sua coloração.";
 }
 
-/* ---------- swatch fan ---------- */
-function Fan({ colors, small }) {
-  const compactGrid = colors.length >= 50;
-  if (compactGrid) {
-    return (
+/* ---------- grade de cores ---------- */
+// Uma única forma de mostrar cartela no app: quadradinhos retos numa grade.
+// A densidade muda com o tamanho da cartela, o desenho não.
+// Cartela grande tem 20 famílias por linha; nas menores escolhe o número de colunas
+// que deixa a última linha mais cheia, pra não sobrar um vão esquisito no fim.
+function balancedColumns(count) {
+  if (count >= 50) return 20;
+  if (count <= 4) return count;
+  let best = Math.min(count, 7);
+  let bestGap = Infinity;
+  for (let c = 8; c >= 4; c--) {
+    if (c > count) continue;
+    const gap = (c - (count % c)) % c;
+    if (gap < bestGap) {
+      bestGap = gap;
+      best = c;
+    }
+  }
+  return best;
+}
+
+function Palette({ colors, columns, interactive = true, hint = false }) {
+  const [selected, setSelected] = useState(null);
+  const cols = columns || balancedColumns(colors.length);
+  const dense = cols >= 12;
+  const active = selected != null ? colors[selected] : null;
+
+  return (
+    <div>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(20, minmax(0, 1fr))",
-          gap: 3,
-          padding: 4,
+          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+          gap: dense ? 3 : 6,
+          padding: dense ? 4 : 6,
           background: "rgba(255,255,255,0.38)",
           borderRadius: 10,
         }}
       >
-        {colors.map((c, i) => (
-          <div
-            key={c.hex + i}
-            title={`${c.nome} · ${c.hex}`}
-            aria-label={`${c.nome}, ${c.hex}`}
-            style={{
-              width: "100%",
-              aspectRatio: "1 / 1",
-              background: c.hex,
-              borderRadius: 2,
-              border: "1px solid rgba(0,0,0,0.05)",
-            }}
-          />
-        ))}
+        {colors.map((c, i) => {
+          const label = c.nome ? `${c.nome} · ${c.hex}` : c.hex;
+          const isActive = selected === i;
+          return (
+            <button
+              key={c.hex + i}
+              type="button"
+              title={label}
+              aria-label={label}
+              aria-pressed={interactive ? isActive : undefined}
+              disabled={!interactive}
+              onClick={() => setSelected(isActive ? null : i)}
+              style={{
+                width: "100%",
+                aspectRatio: "1 / 1",
+                background: c.hex,
+                borderRadius: dense ? 2 : 4,
+                padding: 0,
+                cursor: interactive ? "pointer" : "default",
+                border: isActive
+                  ? `2px solid ${T.ink}`
+                  : "1px solid rgba(0,0,0,0.08)",
+              }}
+            />
+          );
+        })}
       </div>
-    );
-  }
-
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
-      {colors.map((c, i) => (
+      {interactive && (
         <div
-          key={c.hex + i}
           style={{
-            width: small ? 58 : 74,
-            transform: `rotate(${i % 2 === 0 ? -3 : 3}deg) translateY(${i % 3 === 0 ? 0 : 6}px)`,
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 11,
+            color: active ? T.ink : T.muted,
+            marginTop: 8,
+            minHeight: 16,
+            letterSpacing: 0.3,
           }}
         >
-          <div
-            style={{
-              width: "100%",
-              height: small ? 58 : 90,
-              background: c.hex,
-              borderRadius: "10px 10px 3px 3px",
-              boxShadow: "0 4px 10px rgba(34,30,26,0.18)",
-              border: "1px solid rgba(0,0,0,0.06)",
-            }}
-          />
-          <div
-            style={{
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: 10,
-              color: T.muted,
-              textAlign: "center",
-              marginTop: 4,
-              letterSpacing: 0.3,
-            }}
-          >
-            {c.hex.toUpperCase()}
-          </div>
+          {active ? `${active.nome || "cor"} · ${active.hex}` : hint ? "toque numa cor para ver o nome" : ""}
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -640,7 +703,9 @@ export default function App() {
     setErrorMsg("");
     try {
       const resized = await resizeImage(file, 900);
-      setTapImage(resized);
+      // a cor da luz é uma propriedade da foto inteira, então é estimada uma vez só
+      const illuminant = estimateIlluminant(resized.ctx, resized.width, resized.height);
+      setTapImage({ ...resized, illuminant });
       setTapPoint(null);
       go("pick-point");
     } catch (err) {
@@ -680,8 +745,9 @@ export default function App() {
       const values = sample.map((pixel) => pixel[channel]).sort((a, b) => a - b);
       return values[Math.floor(values.length / 2)];
     };
-    const rgb = { r: median("r"), g: median("g"), b: median("b") };
-    setTapPoint({ xPct: xRatio * 100, yPct: yRatio * 100, rgb });
+    const raw = { r: median("r"), g: median("g"), b: median("b") };
+    const rgb = whiteBalance(raw, tapImage.illuminant);
+    setTapPoint({ xPct: xRatio * 100, yPct: yRatio * 100, rgb, raw });
   }
 
   function confirmTapPoint() {
@@ -797,7 +863,9 @@ export default function App() {
               Depois, teste qualquer roupa pra ver se ela combina com você.
             </p>
             <div style={{ margin: "24px 0 30px" }}>
-              <Fan
+              <Palette
+                interactive={false}
+                columns={6}
                 colors={[
                   { hex: "#C9583F" },
                   { hex: "#E8C36A" },
@@ -874,17 +942,16 @@ export default function App() {
                         color: T.ink,
                       }}
                     >
-                      <span style={{ display: "flex", gap: -4 }}>
+                      <span style={{ display: "flex", gap: 3, flexShrink: 0 }}>
                         {SEASON_PRESETS[name].paleta.slice(0, 4).map((c, i) => (
                           <span
                             key={i}
                             style={{
                               width: 16,
                               height: 16,
-                              borderRadius: "50%",
+                              borderRadius: 3,
                               background: c.hex,
-                              marginLeft: i === 0 ? 0 : -6,
-                              border: "1.5px solid " + T.paper2,
+                              border: "1px solid rgba(0,0,0,0.08)",
                             }}
                           />
                         ))}
@@ -937,12 +1004,12 @@ export default function App() {
             <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: T.muted, marginBottom: 12 }}>
               SUA PALETA · {primaryPaletteForSeason(season).length} TONS
             </div>
-            <Fan colors={primaryPaletteForSeason(season)} />
+            <Palette key={`paleta-${season.subtom}`} colors={primaryPaletteForSeason(season)} hint />
 
             <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: 1.5, color: T.muted, margin: "28px 0 12px" }}>
               EVITAR
             </div>
-            <Fan colors={season.evitar} small />
+            <Palette key={`evitar-${season.subtom}`} colors={season.evitar} />
 
             {SISTER_MAP[season.subtom] && SEASON_PRESETS[SISTER_MAP[season.subtom]] && (
               <>
@@ -953,7 +1020,10 @@ export default function App() {
                   Compartilha a característica principal com a sua. Se tiver uma peça amada fora da sua cartela, essas
                   cores extras também costumam funcionar.
                 </p>
-                <Fan colors={SEASON_PRESETS[SISTER_MAP[season.subtom]].paleta} small />
+                <Palette
+                  key={`irma-${season.subtom}`}
+                  colors={SEASON_PRESETS[SISTER_MAP[season.subtom]].paleta}
+                />
               </>
             )}
 
@@ -997,15 +1067,36 @@ export default function App() {
           <div>
             <div style={eyebrow}>toque na peça</div>
             <h1 style={{ ...h1, fontSize: 26, marginBottom: 8 }}>Onde está a roupa?</h1>
-            <p style={{ color: T.muted, fontSize: 14, marginBottom: 16, lineHeight: 1.5 }}>
-              Toque exatamente em cima do tecido da peça na foto.
+            <p style={{ color: T.muted, fontSize: 13.5, marginBottom: 12, lineHeight: 1.45 }}>
+              Toque exatamente em cima do tecido da peça. A luz da foto é compensada
+              automaticamente, então sombra e lâmpada amarela pesam menos no resultado.
             </p>
-            <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", lineHeight: 0 }}>
+            {/* a foto é limitada em altura pra o botão continuar visível sem rolar.
+                largura automática mantém o retângulo da imagem colado no elemento,
+                senão a conta do ponto tocado sai do lugar. */}
+            <div
+              style={{
+                position: "relative",
+                borderRadius: 6,
+                overflow: "hidden",
+                lineHeight: 0,
+                width: "fit-content",
+                maxWidth: "100%",
+                margin: "0 auto",
+              }}
+            >
               <img
                 src={tapImage.dataUrl}
                 alt="foto enviada"
                 onClick={handleImageTap}
-                style={{ width: "100%", display: "block", cursor: "crosshair" }}
+                style={{
+                  display: "block",
+                  width: "auto",
+                  height: "auto",
+                  maxWidth: "100%",
+                  maxHeight: "44vh",
+                  cursor: "crosshair",
+                }}
               />
               {tapPoint && (
                 <div
@@ -1013,12 +1104,12 @@ export default function App() {
                     position: "absolute",
                     left: `${tapPoint.xPct}%`,
                     top: `${tapPoint.yPct}%`,
-                    width: 30,
-                    height: 30,
-                    borderRadius: "50%",
+                    width: 26,
+                    height: 26,
+                    borderRadius: 4,
                     transform: "translate(-50%,-50%)",
                     border: "3px solid #fff",
-                    boxShadow: "0 0 0 2px rgba(0,0,0,0.35), 0 2px 10px rgba(0,0,0,0.4)",
+                    boxShadow: "0 0 0 2px rgba(0,0,0,0.35)",
                     background: rgbToHex(tapPoint.rgb),
                     pointerEvents: "none",
                   }}
@@ -1026,14 +1117,16 @@ export default function App() {
               )}
             </div>
             {tapPoint ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 8, background: rgbToHex(tapPoint.rgb), border: "1px solid rgba(0,0,0,0.1)", flexShrink: 0 }} />
-                <div style={{ fontSize: 13, color: T.muted }}>cor capturada — toque em outro ponto pra ajustar</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 4, background: rgbToHex(tapPoint.rgb), border: "1px solid rgba(0,0,0,0.1)", flexShrink: 0 }} />
+                <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.4 }}>
+                  cor da peça já corrigida pela luz da foto — toque em outro ponto pra ajustar
+                </div>
               </div>
             ) : (
-              <div style={{ fontSize: 13, color: T.muted, marginTop: 14 }}>nenhum ponto tocado ainda</div>
+              <div style={{ fontSize: 12.5, color: T.muted, marginTop: 12 }}>nenhum ponto tocado ainda</div>
             )}
-            <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
               <button style={btnPrimary} disabled={!tapPoint} onClick={confirmTapPoint}>
                 Usar essa cor
               </button>
@@ -1051,12 +1144,12 @@ export default function App() {
               <img
                 src={clothingPreview}
                 alt="roupa testada"
-                style={{ width: 120, height: 120, objectFit: "cover", borderRadius: 14, margin: "14px auto", boxShadow: "0 6px 16px rgba(0,0,0,0.15)" }}
+                style={{ width: 120, height: 120, objectFit: "cover", borderRadius: 6, margin: "14px auto", border: "1px solid rgba(0,0,0,0.08)" }}
               />
             )}
             <div style={{ display: "flex", justifyContent: "center", margin: "14px 0" }}>
               <div>
-                <div style={{ width: 46, height: 46, borderRadius: 10, background: matchResult.dominantHex, border: "1px solid rgba(0,0,0,0.1)", margin: "0 auto" }} />
+                <div style={{ width: 46, height: 46, borderRadius: 4, background: matchResult.dominantHex, border: "1px solid rgba(0,0,0,0.1)", margin: "0 auto" }} />
                 <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: T.muted, marginTop: 4 }}>
                   cor identificada
                 </div>
@@ -1095,7 +1188,7 @@ export default function App() {
                 <div style={{ display: "flex", justifyContent: "center", gap: 14 }}>
                   {matchResult.suggestions.map((c, i) => (
                     <div key={c.hex + i}>
-                      <div style={{ width: 46, height: 46, borderRadius: 10, background: c.hex, border: "1px solid rgba(0,0,0,0.1)" }} />
+                      <div style={{ width: 46, height: 46, borderRadius: 4, background: c.hex, border: "1px solid rgba(0,0,0,0.1)" }} />
                       <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: T.muted, marginTop: 4, maxWidth: 60 }}>
                         {c.nome}
                       </div>
